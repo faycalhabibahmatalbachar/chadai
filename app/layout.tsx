@@ -17,11 +17,11 @@ export const metadata: Metadata = {
   title: "Toumaï AI — Votre assistant IA, toujours là",
   description:
     "Toumaï AI : discutez avec Sao 4 (code) et Toumaï 5 (raisonnement avancé), générez des images, connectez WhatsApp/Mail/Agenda, laissez l'IA naviguer le web pour vous.",
-  metadataBase: new URL("https://toumai.is-a.dev"),
+  metadataBase: new URL("https://toumaiai.com"),
   openGraph: {
     title: "Toumaï AI",
     description: "Votre assistant IA, toujours là.",
-    url: "https://toumai.is-a.dev",
+    url: "https://toumaiai.com",
     siteName: "Toumaï AI",
     locale: "fr_FR",
     type: "website",
