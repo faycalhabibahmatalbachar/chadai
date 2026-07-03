@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
   deleteSession,
   groupSessionsByDate,
   listSessions,
+  renameSession,
+  setSessionPinned,
   type ChatSession,
 } from "@/lib/chat-api";
 
@@ -26,6 +28,19 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuId) return;
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuId(null);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [menuId]);
 
   useEffect(() => {
     if (!session) return;
@@ -47,8 +62,8 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
     };
   }, [session, refreshKey]);
 
-  async function handleDelete(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  async function handleDelete(id: string) {
+    setMenuId(null);
     setDeletingId(id);
     try {
       await deleteSession(id);
@@ -58,6 +73,36 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
       // L'échec de suppression laisse la conversation visible — pas d'état incohérent.
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function togglePin(s: ChatSession) {
+    setMenuId(null);
+    const next = !s.pinned;
+    setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pinned: next } : x)));
+    try {
+      await setSessionPinned(s.id, next);
+    } catch {
+      setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pinned: s.pinned } : x)));
+    }
+  }
+
+  function startRename(s: ChatSession) {
+    setMenuId(null);
+    setRenamingId(s.id);
+    setRenameDraft(s.title || "");
+  }
+
+  async function saveRename(id: string) {
+    const title = renameDraft.trim();
+    setRenamingId(null);
+    if (!title) return;
+    const prevTitle = sessions.find((s) => s.id === id)?.title;
+    setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)));
+    try {
+      await renameSession(id, title);
+    } catch {
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title: prevTitle ?? s.title } : s)));
     }
   }
 
@@ -140,30 +185,80 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
               <p className="px-2 pb-1 text-[11px] font-medium text-[var(--text-tertiary)]">
                 {group.label}
               </p>
-              {group.items.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => {
-                    onSelect(s.id);
-                    onClose();
-                  }}
-                  className={`group flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                    s.id === activeId
-                      ? "bg-[var(--card)] text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)] hover:bg-white/5"
-                  }`}
-                >
-                  <span className="truncate">{s.title || "Sans titre"}</span>
-                  <span
-                    role="button"
-                    aria-label="Supprimer la conversation"
-                    onClick={(e) => handleDelete(s.id, e)}
-                    className="ml-2 shrink-0 rounded p-1 text-[var(--text-tertiary)] opacity-0 transition hover:text-[var(--error)] group-hover:opacity-100"
-                  >
-                    {deletingId === s.id ? "…" : <CloseIcon />}
-                  </span>
-                </button>
-              ))}
+              {group.items.map((s) =>
+                renamingId === s.id ? (
+                  <input
+                    key={s.id}
+                    autoFocus
+                    value={renameDraft}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onBlur={() => saveRename(s.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveRename(s.id);
+                      else if (e.key === "Escape") setRenamingId(null);
+                    }}
+                    className="w-full rounded-lg border border-[var(--primary)] bg-transparent px-2.5 py-2 text-sm outline-none"
+                  />
+                ) : (
+                  <div key={s.id} className="group relative">
+                    <button
+                      onClick={() => {
+                        onSelect(s.id);
+                        onClose();
+                      }}
+                      className={`flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                        s.id === activeId
+                          ? "bg-[var(--card)] text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)] hover:bg-white/5"
+                      }`}
+                    >
+                      {s.pinned && <PinIcon className="shrink-0 text-[var(--text-tertiary)]" />}
+                      <span className="min-w-0 flex-1 truncate">{s.title || "Sans titre"}</span>
+                      <span
+                        role="button"
+                        aria-label="Options de la conversation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuId(menuId === s.id ? null : s.id);
+                        }}
+                        className={`shrink-0 rounded p-1 text-[var(--text-tertiary)] transition hover:text-[var(--text-primary)] ${
+                          menuId === s.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        }`}
+                      >
+                        {deletingId === s.id ? "…" : <DotsIcon />}
+                      </span>
+                    </button>
+                    {menuId === s.id && (
+                      <div
+                        ref={menuRef}
+                        className="absolute right-0 top-full z-10 mt-1 w-44 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg"
+                      >
+                        <button
+                          onClick={() => togglePin(s)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-white/5"
+                        >
+                          <PinIcon />
+                          {s.pinned ? "Détacher" : "Épingler"}
+                        </button>
+                        <button
+                          onClick={() => startRename(s)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-white/5"
+                        >
+                          <EditIcon />
+                          Renommer
+                        </button>
+                        <button
+                          onClick={() => handleDelete(s.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--error)] transition hover:bg-white/5"
+                        >
+                          <CloseIcon />
+                          Supprimer
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
             </div>
           ))}
         </nav>
@@ -244,6 +339,48 @@ function CloseIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
       <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DotsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  );
+}
+
+function PinIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={className}
+    >
+      <path
+        d="M12 17v5M8 3h8l-1 6 3 3v2H6v-2l3-3-1-6z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path
+        d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

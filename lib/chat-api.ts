@@ -6,6 +6,7 @@ export interface ChatSession {
   title: string;
   created_at: string;
   model_used?: string;
+  pinned?: boolean;
 }
 
 export interface HistoryMessage {
@@ -45,6 +46,29 @@ export async function deleteSession(sessionId: string): Promise<void> {
   if (!res.ok) throw new Error(`Erreur ${res.status}`);
 }
 
+async function updateSession(
+  sessionId: string,
+  patch: { title?: string; pinned?: boolean },
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/chat/session/${sessionId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(patch),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.success === false) {
+    throw new Error(body.message || `Erreur ${res.status}`);
+  }
+}
+
+export function renameSession(sessionId: string, title: string): Promise<void> {
+  return updateSession(sessionId, { title });
+}
+
+export function setSessionPinned(sessionId: string, pinned: boolean): Promise<void> {
+  return updateSession(sessionId, { pinned });
+}
+
 /** Supprime un message et tout ce qui le suit dans sa session — utilisé
  * avant de renvoyer un message utilisateur édité, pour que le modèle ne
  * voie pas l'ancienne branche de la conversation. */
@@ -65,17 +89,23 @@ export async function sendFeedback(messageId: string, rating: "up" | "down"): Pr
   if (!res.ok) throw new Error(`Erreur ${res.status}`);
 }
 
-/** Regroupe les sessions par période, comme ChatGPT/Claude.ai. */
+/** Regroupe les sessions par période, comme ChatGPT/Claude.ai — les
+ * conversations épinglées forment leur propre groupe en tête de liste. */
 export function groupSessionsByDate(sessions: ChatSession[]): { label: string; items: ChatSession[] }[] {
   const now = Date.now();
   const day = 86_400_000;
   const groups: Record<string, ChatSession[]> = {
+    "Épinglées": [],
     "Aujourd'hui": [],
     "7 derniers jours": [],
     "30 derniers jours": [],
     "Plus ancien": [],
   };
   for (const s of sessions) {
+    if (s.pinned) {
+      groups["Épinglées"].push(s);
+      continue;
+    }
     const t = new Date(s.created_at).getTime();
     const diff = now - t;
     if (diff < day) groups["Aujourd'hui"].push(s);
