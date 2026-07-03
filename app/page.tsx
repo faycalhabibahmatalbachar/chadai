@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
+import { TypewriterDemo } from "@/components/TypewriterDemo";
+import { SahelPattern } from "@/components/SahelPattern";
 
 const FEATURES = [
   {
@@ -36,52 +38,62 @@ const FEATURES = [
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col overflow-x-hidden">
       <Navbar />
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 py-28 text-center sm:py-40">
+      <section className="relative overflow-hidden px-6 pb-20 pt-20 sm:pb-28 sm:pt-28">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10"
           style={{
             background:
-              "radial-gradient(ellipse 900px 500px at 50% -10%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%)",
+              "radial-gradient(ellipse 900px 500px at 30% -10%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%), radial-gradient(ellipse 700px 400px at 90% 10%, color-mix(in srgb, #d97757 12%, transparent), transparent 70%)",
           }}
         />
-        <p className="mb-5 inline-block rounded-full border border-[var(--border)] px-4 py-1 text-xs font-medium text-[var(--text-secondary)]">
-          Conçu et développé par Faycal Habib Ahmat
-        </p>
-        <h1 className="mx-auto max-w-3xl text-5xl font-semibold tracking-tight sm:text-7xl">
-          Votre assistant IA,{" "}
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, var(--primary), var(--thinking))",
-            }}
-          >
-            toujours là.
-          </span>
-        </h1>
-        <p className="mx-auto mt-7 max-w-xl text-lg text-[var(--text-secondary)]">
-          Toumaï AI discute, code, génère des images, navigue le web et gère vos
-          WhatsApp/Mail/Agenda — tout ce que fait l&apos;app mobile, directement
-          dans votre navigateur.
-        </p>
-        <div className="mt-11 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href="/chat"
-            className="rounded-full px-8 py-3.5 text-base font-medium text-white shadow-lg shadow-[var(--primary)]/25 transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
-          >
-            Discuter maintenant — sans compte
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-full border border-[var(--border)] px-8 py-3.5 text-base font-medium text-[var(--text-primary)] transition hover:border-[var(--primary)]"
-          >
-            Créer un compte
-          </Link>
+        <SahelPattern className="pointer-events-none absolute inset-0 -z-10 h-full w-full text-[var(--primary)] opacity-[0.04]" />
+
+        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2">
+          <div className="text-center lg:text-left">
+            <p className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-4 py-1 text-xs font-medium text-[var(--text-secondary)]">
+              <span aria-hidden="true">🇹🇩</span> Pensé et bâti au Tchad, pour l&apos;Afrique
+            </p>
+            <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
+              Votre assistant IA,{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: "linear-gradient(135deg, var(--primary), var(--thinking))",
+                }}
+              >
+                toujours là.
+              </span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-lg text-lg text-[var(--text-secondary)] lg:mx-0">
+              Toumaï AI discute, code, génère des images, navigue le web et gère vos
+              WhatsApp/Mail/Agenda — en français, en arabe, et dans votre parler
+              tchadien.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+              <Link
+                href="/chat"
+                className="rounded-full px-8 py-3.5 text-base font-medium text-white shadow-lg shadow-[var(--primary)]/25 transition hover:opacity-90"
+                style={{ background: "var(--primary)" }}
+              >
+                Discuter maintenant — sans compte
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full border border-[var(--border)] px-8 py-3.5 text-base font-medium text-[var(--text-primary)] transition hover:border-[var(--primary)]"
+              >
+                Créer un compte
+              </Link>
+            </div>
+          </div>
+
+          <div className="animate-fade-in">
+            <TypewriterDemo />
+          </div>
         </div>
       </section>
 
@@ -106,7 +118,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-[var(--border)] px-6 py-8 text-center text-sm text-[var(--text-tertiary)]">
-        Toumaï AI — conçu et développé par Faycal Habib Ahmat.
+        Toumaï AI — nommé d&apos;après le plus ancien hominidé connu, découvert au Tchad.
       </footer>
     </div>
   );
