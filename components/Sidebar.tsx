@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
   deleteSession,
@@ -156,7 +157,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           ))}
         </nav>
 
-        <div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3">
+        <Link
+          href="/settings"
+          onClick={onClose}
+          className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-white/5"
+        >
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
             style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
@@ -167,7 +172,8 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           <span className="truncate text-xs font-medium text-[var(--text-secondary)]">
             {session ? "Session invité" : "Connexion…"}
           </span>
-        </div>
+          <SettingsIcon />
+        </Link>
       </aside>
     </>
   );
@@ -186,6 +192,27 @@ function SearchIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="ml-auto shrink-0 text-[var(--text-tertiary)]"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path
+        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
