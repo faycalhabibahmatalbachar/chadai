@@ -16,6 +16,18 @@ export interface Message {
   serverId?: string;
 }
 
+function EditIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path
+        d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Indicateur "Toumaï AI réfléchit" — affiché avant le premier token, comme
  * les trois points de ChatGPT/Gemini pendant la latence initiale. */
 function TypingDots() {
@@ -57,10 +69,35 @@ function Avatar({ role }: { role: "user" | "assistant" }) {
   );
 }
 
-export function ChatMessage({ message }: { message: Message }) {
+export function ChatMessage({
+  message,
+  onEdit,
+  editable = true,
+}: {
+  message: Message;
+  onEdit?: (newContent: string) => void;
+  editable?: boolean;
+}) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [rated, setRated] = useState<"up" | "down" | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(message.content);
+
+  function startEdit() {
+    setDraft(message.content);
+    setEditing(true);
+  }
+
+  function saveEdit() {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === message.content) {
+      setEditing(false);
+      return;
+    }
+    setEditing(false);
+    onEdit?.(trimmed);
+  }
 
   async function copy() {
     await navigator.clipboard.writeText(message.content);
@@ -79,13 +116,64 @@ export function ChatMessage({ message }: { message: Message }) {
   }
 
   if (isUser) {
+    if (editing) {
+      return (
+        <div className="flex animate-fade-in items-start justify-end gap-2.5">
+          <div className="flex max-w-[85%] flex-col gap-2 sm:max-w-[70%]">
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  saveEdit();
+                } else if (e.key === "Escape") {
+                  setEditing(false);
+                }
+              }}
+              rows={Math.min(8, Math.max(2, draft.split("\n").length))}
+              className="w-full resize-none rounded-2xl border border-[var(--primary)] bg-[var(--card)] px-4 py-3 text-[15px] leading-relaxed text-[var(--text-primary)] outline-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditing(false)}
+                className="rounded-lg px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-white/5"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!draft.trim()}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-40"
+                style={{ background: "var(--primary)" }}
+              >
+                Envoyer
+              </button>
+            </div>
+          </div>
+          <Avatar role="user" />
+        </div>
+      );
+    }
     return (
-      <div className="flex animate-fade-in items-start justify-end gap-2.5">
-        <div
-          className="max-w-[85%] rounded-2xl rounded-tr-md px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-white sm:max-w-[70%]"
-          style={{ background: "var(--primary)" }}
-        >
-          {message.content}
+      <div className="group flex animate-fade-in items-start justify-end gap-2.5">
+        <div className="flex max-w-[85%] flex-col items-end gap-1 sm:max-w-[70%]">
+          <div
+            className="rounded-2xl rounded-tr-md px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-white"
+            style={{ background: "var(--primary)" }}
+          >
+            {message.content}
+          </div>
+          {editable && onEdit && (
+            <button
+              onClick={startEdit}
+              aria-label="Modifier le message"
+              className="flex items-center gap-1 rounded p-1 text-[11px] text-[var(--text-tertiary)] opacity-0 transition hover:text-[var(--text-primary)] group-hover:opacity-100"
+            >
+              <EditIcon /> Modifier
+            </button>
+          )}
         </div>
         <Avatar role="user" />
       </div>

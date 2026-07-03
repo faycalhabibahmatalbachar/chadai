@@ -7,6 +7,7 @@ export interface StreamEvent {
   done?: boolean;
   session_id?: string;
   message_id?: string;
+  user_message_id?: string;
   error?: string;
 }
 
@@ -42,6 +43,9 @@ export async function streamChat(
     }),
   });
 
+  if (res.status === 429) {
+    throw new Error("Trop de messages envoyés d'un coup. Patientez quelques secondes avant de réessayer.");
+  }
   if (!res.ok || !res.body) {
     throw new Error(`Le serveur a répondu ${res.status}`);
   }

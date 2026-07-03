@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { streamChat } from "@/lib/chat-stream";
-import { getHistory } from "@/lib/chat-api";
+import { getHistory, deleteMessageAndAfter } from "@/lib/chat-api";
 import { ChatMessage, type Message } from "@/components/ChatMessage";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Sidebar } from "@/components/Sidebar";
@@ -37,10 +37,12 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const guestAttempted = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const lastUserMessageRef = useRef<string>("");
+  const stickToBottomRef = useRef(true);
 
   // Connexion invité automatique — parité avec "Essayer sans compte" du mobile.
   useEffect(() => {
@@ -49,9 +51,20 @@ export default function ChatPage() {
     loginAsGuest().catch(() => setError("Impossible de démarrer une session."));
   }, [loading, session, loginAsGuest]);
 
+  // Scroll auto vers le bas, sauf si l'utilisateur a remonté manuellement
+  // pour relire un message précédent pendant que la réponse arrive (comme
+  // ChatGPT/Gemini).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
+
+  function handleMainScroll(e: React.UIEvent<HTMLElement>) {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 120;
+  }
 
   // Auto-grandissement de la zone de saisie, comme Claude/ChatGPT.
   useEffect(() => {
@@ -105,6 +118,7 @@ export default function ChatPage() {
     if (!text || sending || !session) return;
     setInput("");
     setError(null);
+    stickToBottomRef.current = true;
     lastUserMessageRef.current = text;
 
     const isFirstMessage = messages.length === 0;
@@ -115,7 +129,7 @@ export default function ChatPage() {
       userMsg,
       { id: assistantId, role: "assistant", content: "", streaming: true },
     ]);
-    await runStream(text, assistantId, isFirstMessage);
+    await runStream(text, assistantId, isFirstMessage, userMsg.id);
   }
 
   /** Redemande une réponse pour le dernier message utilisateur — remplace la
@@ -123,6 +137,7 @@ export default function ChatPage() {
   async function regenerate() {
     if (sending || !session || !lastUserMessageRef.current) return;
     setError(null);
+    stickToBottomRef.current = true;
     const assistantId = nextId();
     setMessages((prev) => {
       // Retire la dernière réponse assistant, ajoute un nouvel emplacement en cours.
@@ -132,7 +147,37 @@ export default function ChatPage() {
     await runStream(lastUserMessageRef.current, assistantId, false);
   }
 
-  async function runStream(text: string, assistantId: string, isFirstMessage: boolean) {
+  /** Modifie un message utilisateur passé, tronque tout ce qui suit (côté
+   * client ET côté serveur, pour que le modèle ne voie pas l'ancienne
+   * branche) et relance la génération à partir de là — comme ChatGPT/Claude. */
+  async function editMessage(id: string, newContent: string) {
+    if (sending || !session) return;
+    setError(null);
+    stickToBottomRef.current = true;
+    const idx = messages.findIndex((m) => m.id === id);
+    if (idx === -1) return;
+    const edited = messages[idx];
+    const isFirstMessage = idx === 0;
+    const assistantId = nextId();
+    lastUserMessageRef.current = newContent;
+    setMessages((prev) => [
+      ...prev.slice(0, idx),
+      { ...edited, content: newContent, serverId: undefined },
+      { id: assistantId, role: "assistant", content: "", streaming: true },
+    ]);
+    if (edited.serverId) {
+      try {
+        await deleteMessageAndAfter(edited.serverId);
+      } catch {
+        // La troncature serveur a échoué (session déjà à jour, réseau…) —
+        // on continue quand même : le pire cas est un contexte légèrement
+        // périmé pour ce tour, pas un blocage de l'UX.
+      }
+    }
+    await runStream(newContent, assistantId, isFirstMessage, edited.id);
+  }
+
+  async function runStream(text: string, assistantId: string, isFirstMessage: boolean, userMsgId?: string) {
     setSending(true);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -153,11 +198,11 @@ export default function ChatPage() {
           }
           if (evt.done) {
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? { ...m, streaming: false, serverId: evt.message_id }
-                  : m,
-              ),
+              prev.map((m) => {
+                if (m.id === assistantId) return { ...m, streaming: false, serverId: evt.message_id };
+                if (userMsgId && m.id === userMsgId) return { ...m, serverId: evt.user_message_id };
+                return m;
+              }),
             );
             // Nouvelle conversation créée : rafraîchit la sidebar pour l'afficher.
             if (isFirstMessage) setSidebarRefreshKey((k) => k + 1);
@@ -229,7 +274,11 @@ export default function ChatPage() {
         </header>
 
         {/* Messages */}
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 overflow-y-auto px-4 py-6">
+        <main
+          ref={mainRef}
+          onScroll={handleMainScroll}
+          className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 overflow-y-auto px-4 py-6"
+        >
           {historyLoading && <HistorySkeleton />}
 
           {!historyLoading && messages.length === 0 && (
@@ -270,7 +319,14 @@ export default function ChatPage() {
           )}
 
           {!historyLoading &&
-            messages.map((m) => <ChatMessage key={m.id} message={m} />)}
+            messages.map((m) => (
+              <ChatMessage
+                key={m.id}
+                message={m}
+                editable={!sending}
+                onEdit={m.role === "user" ? (text) => editMessage(m.id, text) : undefined}
+              />
+            ))}
 
           {!historyLoading &&
             !sending &&

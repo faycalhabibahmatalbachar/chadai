@@ -45,6 +45,17 @@ export async function deleteSession(sessionId: string): Promise<void> {
   if (!res.ok) throw new Error(`Erreur ${res.status}`);
 }
 
+/** Supprime un message et tout ce qui le suit dans sa session — utilisé
+ * avant de renvoyer un message utilisateur édité, pour que le modèle ne
+ * voie pas l'ancienne branche de la conversation. */
+export async function deleteMessageAndAfter(messageId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/chat/message/${messageId}/after`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+}
+
 export async function sendFeedback(messageId: string, rating: "up" | "down"): Promise<void> {
   const res = await fetch(`${API_BASE}/chat/feedback`, {
     method: "POST",
