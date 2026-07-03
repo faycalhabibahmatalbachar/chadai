@@ -283,14 +283,10 @@ export default function ChatPage() {
 
           {!historyLoading && messages.length === 0 && (
             <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
-              <div
-                className="mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl"
-                style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
-                aria-hidden="true"
-              >
-                <Logo size={38} />
+              <div className="mb-5" aria-hidden="true">
+                <Logo size={40} />
               </div>
-              <p className="mb-1.5 text-2xl font-semibold text-[var(--text-primary)]">
+              <p className="mb-2 text-4xl font-light text-[var(--text-primary)]">
                 Que puis-je faire pour vous ?
               </p>
               <p className="mb-8 text-sm text-[var(--text-secondary)]">
@@ -335,7 +331,7 @@ export default function ChatPage() {
             messages[messages.length - 1].content && (
               <button
                 onClick={regenerate}
-                className="ml-9 flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+                className="flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
               >
                 <RegenerateIcon /> Régénérer
               </button>

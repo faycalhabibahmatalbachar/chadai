@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { sendFeedback } from "@/lib/chat-api";
 import { CodeBlock } from "./CodeBlock";
-import { Logo } from "./Logo";
 
 export interface Message {
   id: string;
@@ -43,28 +42,6 @@ function TypingDots() {
           }}
         />
       ))}
-    </div>
-  );
-}
-
-function Avatar({ role }: { role: "user" | "assistant" }) {
-  if (role === "assistant") {
-    return (
-      <div
-        className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
-        style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
-        aria-hidden="true"
-      >
-        <Logo size={20} />
-      </div>
-    );
-  }
-  return (
-    <div
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--card)] text-xs font-semibold text-[var(--text-secondary)]"
-      aria-hidden="true"
-    >
-      V
     </div>
   );
 }
@@ -118,7 +95,7 @@ export function ChatMessage({
   if (isUser) {
     if (editing) {
       return (
-        <div className="flex animate-fade-in items-start justify-end gap-2.5">
+        <div className="flex animate-fade-in justify-end">
           <div className="flex max-w-[85%] flex-col gap-2 sm:max-w-[70%]">
             <textarea
               autoFocus
@@ -152,17 +129,13 @@ export function ChatMessage({
               </button>
             </div>
           </div>
-          <Avatar role="user" />
         </div>
       );
     }
     return (
-      <div className="group flex animate-fade-in items-start justify-end gap-2.5">
+      <div className="group flex animate-fade-in justify-end">
         <div className="flex max-w-[85%] flex-col items-end gap-1 sm:max-w-[70%]">
-          <div
-            className="rounded-2xl rounded-tr-md px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap text-white"
-            style={{ background: "var(--primary)" }}
-          >
+          <div className="rounded-3xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap" style={{ background: "var(--card)" }}>
             {message.content}
           </div>
           {editable && onEdit && (
@@ -175,19 +148,16 @@ export function ChatMessage({
             </button>
           )}
         </div>
-        <Avatar role="user" />
       </div>
     );
   }
 
   return (
-    <div className="flex animate-fade-in items-start gap-2.5">
-      <Avatar role="assistant" />
-      <div className="flex min-w-0 max-w-[90%] flex-col items-start gap-1.5 sm:max-w-[80%]">
-        <div className="w-full rounded-2xl rounded-tl-md border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[15px] leading-relaxed">
-          {message.streaming && !message.content ? (
-            <TypingDots />
-          ) : (
+    <div className="animate-fade-in">
+      <div className="max-w-[80ch] text-[15px] leading-relaxed">
+        {message.streaming && !message.content ? (
+          <TypingDots />
+        ) : (
           <div className="prose-toumai">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -211,47 +181,46 @@ export function ChatMessage({
               {message.content || ""}
             </ReactMarkdown>
           </div>
-          )}
-          {message.streaming && message.content && (
-            <span className="streaming-cursor ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 bg-current align-middle" />
-          )}
-        </div>
-        {!message.streaming && message.content && (
-          <div className="flex items-center gap-1 px-1 text-[var(--text-tertiary)]">
-            <button
-              onClick={copy}
-              aria-label="Copier la réponse"
-              className="rounded p-1.5 text-xs transition hover:bg-white/5 hover:text-[var(--text-primary)]"
-            >
-              {copied ? "Copié" : "Copier"}
-            </button>
-            {message.serverId && (
-              <>
-                <button
-                  onClick={() => rate("up")}
-                  aria-label="Bonne réponse"
-                  disabled={!!rated}
-                  className={`rounded p-1.5 text-xs transition hover:bg-white/5 ${
-                    rated === "up" ? "text-[var(--success)]" : "hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  👍
-                </button>
-                <button
-                  onClick={() => rate("down")}
-                  aria-label="Mauvaise réponse"
-                  disabled={!!rated}
-                  className={`rounded p-1.5 text-xs transition hover:bg-white/5 ${
-                    rated === "down" ? "text-[var(--error)]" : "hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  👎
-                </button>
-              </>
-            )}
-          </div>
+        )}
+        {message.streaming && message.content && (
+          <span className="streaming-cursor ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 bg-current align-middle" />
         )}
       </div>
+      {!message.streaming && message.content && (
+        <div className="flex items-center gap-1 pt-1 text-[var(--text-tertiary)]">
+          <button
+            onClick={copy}
+            aria-label="Copier la réponse"
+            className="rounded p-1.5 text-xs transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+          >
+            {copied ? "Copié" : "Copier"}
+          </button>
+          {message.serverId && (
+            <>
+              <button
+                onClick={() => rate("up")}
+                aria-label="Bonne réponse"
+                disabled={!!rated}
+                className={`rounded p-1.5 text-xs transition hover:bg-white/5 ${
+                  rated === "up" ? "text-[var(--success)]" : "hover:text-[var(--text-primary)]"
+                }`}
+              >
+                👍
+              </button>
+              <button
+                onClick={() => rate("down")}
+                aria-label="Mauvaise réponse"
+                disabled={!!rated}
+                className={`rounded p-1.5 text-xs transition hover:bg-white/5 ${
+                  rated === "down" ? "text-[var(--error)]" : "hover:text-[var(--text-primary)]"
+                }`}
+              >
+                👎
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
