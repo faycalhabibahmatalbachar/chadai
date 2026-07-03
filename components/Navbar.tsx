@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+
+export function Navbar() {
+  const { session, logout } = useAuth();
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
+            style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
+          >
+            C
+          </span>
+          ChadGPT
+        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          {session ? (
+            <>
+              <Link
+                href="/chat"
+                className="rounded-lg px-4 py-2 font-medium text-white transition hover:opacity-90"
+                style={{ background: "var(--primary)" }}
+              >
+                Ouvrir le chat
+              </Link>
+              <button
+                onClick={logout}
+                className="rounded-lg px-3 py-2 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              >
+                Déconnexion
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-lg px-4 py-2 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/chat"
+                className="rounded-lg px-4 py-2 font-medium text-white transition hover:opacity-90"
+                style={{ background: "var(--primary)" }}
+              >
+                Essayer gratuitement
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+    </header>
+  );
+}
