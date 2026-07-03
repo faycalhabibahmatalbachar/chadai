@@ -14,9 +14,9 @@ export function Navbar() {
             className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
             style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
           >
-            C
+            T
           </span>
-          ChadGPT
+          Toumaï AI
         </Link>
         <div className="flex items-center gap-3 text-sm">
           {session ? (

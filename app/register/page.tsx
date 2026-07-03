@@ -42,11 +42,11 @@ export default function RegisterPage() {
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 block text-center text-2xl font-bold">
-          ChadGPT
+          Toumaï AI
         </Link>
         <h1 className="mb-1 text-center text-xl font-semibold">Créer un compte</h1>
         <p className="mb-8 text-center text-sm text-[var(--text-secondary)]">
-          Rejoignez ChadGPT en quelques secondes.
+          Rejoignez Toumaï AI en quelques secondes.
         </p>
 
         <form onSubmit={submit} className="space-y-4">

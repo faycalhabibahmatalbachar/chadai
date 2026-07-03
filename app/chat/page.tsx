@@ -97,7 +97,7 @@ export default function ChatPage() {
       {/* Barre supérieure */}
       <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <Link href="/" className="text-sm font-semibold">
-          ← ChadGPT
+          ← Toumaï AI
         </Link>
         <ModelSelector value={model} onChange={setModel} />
       </header>
@@ -149,7 +149,7 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Écrivez à ChadGPT…"
+              placeholder="Écrivez à Toumaï AI…"
               rows={1}
               disabled={!session}
               className="max-h-40 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[var(--text-tertiary)]"

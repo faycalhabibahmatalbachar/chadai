@@ -14,15 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChadGPT — Votre assistant IA, toujours là",
+  title: "Toumaï AI — Votre assistant IA, toujours là",
   description:
-    "ChadGPT : discutez avec Sao 4 (code) et Toumaï 5 (raisonnement avancé), générez des images, connectez WhatsApp/Mail/Agenda, laissez l'IA naviguer le web pour vous.",
-  metadataBase: new URL("https://chadgpt.is-a.dev"),
+    "Toumaï AI : discutez avec Sao 4 (code) et Toumaï 5 (raisonnement avancé), générez des images, connectez WhatsApp/Mail/Agenda, laissez l'IA naviguer le web pour vous.",
+  metadataBase: new URL("https://toumai.is-a.dev"),
   openGraph: {
-    title: "ChadGPT",
+    title: "Toumaï AI",
     description: "Votre assistant IA, toujours là.",
-    url: "https://chadgpt.is-a.dev",
-    siteName: "ChadGPT",
+    url: "https://toumai.is-a.dev",
+    siteName: "Toumaï AI",
     locale: "fr_FR",
     type: "website",
   },

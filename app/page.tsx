@@ -14,12 +14,12 @@ const FEATURES = [
   },
   {
     title: "Génération d'images",
-    desc: "Décrivez un visuel, ChadGPT le crée pour vous.",
+    desc: "Décrivez un visuel, Toumaï AI le crée pour vous.",
     icon: "🎨",
   },
   {
     title: "Agent Navigateur",
-    desc: "ChadGPT pilote un vrai navigateur : il navigue, clique, remplit des formulaires pour accomplir vos tâches web.",
+    desc: "Toumaï AI pilote un vrai navigateur : il navigue, clique, remplit des formulaires pour accomplir vos tâches web.",
     icon: "🌐",
   },
   {
@@ -29,7 +29,7 @@ const FEATURES = [
   },
   {
     title: "Multilingue",
-    desc: "Français, arabe et anglais — ChadGPT s'adapte à votre langue, y compris le tchadien familier.",
+    desc: "Français, arabe et anglais — Toumaï AI s'adapte à votre langue, y compris le tchadien familier.",
     icon: "🗣️",
   },
 ];
@@ -64,7 +64,7 @@ export default function Home() {
           </span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--text-secondary)]">
-          ChadGPT discute, code, génère des images, navigue le web et gère vos
+          Toumaï AI discute, code, génère des images, navigue le web et gère vos
           WhatsApp/Mail/Agenda — tout ce que fait l&apos;app mobile, directement
           dans votre navigateur.
         </p>
@@ -100,7 +100,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-[var(--border)] px-6 py-8 text-center text-sm text-[var(--text-tertiary)]">
-        ChadGPT — conçu et développé par Faycal Habib Ahmat.
+        Toumaï AI — conçu et développé par Faycal Habib Ahmat.
       </footer>
     </div>
   );

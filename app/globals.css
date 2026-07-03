@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Palette identique à l'app mobile ChadGPT (thème sombre par défaut). */
+/* Palette identique à l'app mobile Toumaï AI (thème sombre par défaut). */
 :root {
   --primary: #6c63ff;
   --primary-light: #9f93ff;
