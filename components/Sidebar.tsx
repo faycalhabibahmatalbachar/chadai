@@ -108,6 +108,17 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           </div>
         </div>
 
+        <div className="px-3 pb-1">
+          <Link
+            href="/library"
+            onClick={onClose}
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+          >
+            <LibraryIcon />
+            Bibliothèque
+          </Link>
+        </div>
+
         <nav className="flex-1 overflow-y-auto px-2 pb-3">
           {loading && (
             <div className="flex flex-col gap-2 px-2 py-2" aria-hidden="true">
@@ -192,6 +203,18 @@ function SearchIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LibraryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path
+        d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
