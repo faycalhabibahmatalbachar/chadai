@@ -18,10 +18,20 @@ interface SpeechRecognitionLike extends EventTarget {
   interimResults: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onresult:
+    | ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void)
+    | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onstart: (() => void) | null;
 }
+
+const DICTATION_ERROR_LABEL: Record<string, string> = {
+  "not-allowed": "Accès au microphone refusé — autorisez-le dans les paramètres du navigateur.",
+  "audio-capture": "Aucun microphone détecté.",
+  network: "Problème réseau pendant la dictée.",
+  "no-speech": "Aucune parole détectée.",
+};
 
 let idCounter = 0;
 function nextId() {
@@ -52,6 +62,7 @@ export default function ChatPage() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [dictating, setDictating] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const dictationBaseRef = useRef("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -129,6 +140,7 @@ export default function ChatPage() {
           serverId: m.id,
           role: m.role,
           content: m.content,
+          imageUrls: m.metadata?.image_urls,
         })),
       );
       const lastUser = [...history].reverse().find((m) => m.role === "user");
@@ -231,9 +243,17 @@ export default function ChatPage() {
             setActiveSessionId(evt.session_id);
           }
           if (evt.done) {
+            const imageUrls = evt.metadata?.image_urls;
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === assistantId) return { ...m, streaming: false, serverId: evt.message_id };
+                if (m.id === assistantId) {
+                  return {
+                    ...m,
+                    streaming: false,
+                    serverId: evt.message_id,
+                    imageUrls: imageUrls?.length ? imageUrls : m.imageUrls,
+                  };
+                }
                 if (userMsgId && m.id === userMsgId) return { ...m, serverId: evt.user_message_id };
                 return m;
               }),
@@ -268,10 +288,9 @@ export default function ChatPage() {
 
   /** Dictée vocale (Web Speech API) — Chrome/Edge uniquement, absent sur
    * Firefox/Safari : le bouton reste alors simplement inactif. */
-  async function toggleDictation() {
+  function toggleDictation() {
     if (dictating) {
       recognitionRef.current?.stop();
-      setDictating(false);
       return;
     }
     const Ctor =
@@ -281,34 +300,31 @@ export default function ChatPage() {
       setError("La dictée vocale n'est pas prise en charge par ce navigateur.");
       return;
     }
-    // Demande explicite du micro d'abord : sur certains navigateurs (Edge
-    // inclus), SpeechRecognition seul échoue silencieusement en 'not-allowed'
-    // sans jamais déclencher la vraie invite de permission du micro.
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((t) => t.stop());
-    } catch {
-      setError("Accès au microphone refusé — autorisez-le dans les paramètres du navigateur.");
-      return;
-    }
 
+    // Laisse SpeechRecognition gérer elle-même la permission micro — un
+    // getUserMedia() séparé juste avant peut laisser le périphérique
+    // "occupé" le temps que l'OS le libère, et faire échouer start() juste
+    // après (source probable du "ça ne marche jamais" observé).
+    dictationBaseRef.current = input;
     const recognition = new Ctor();
     recognition.lang = "fr-FR";
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onstart = () => setDictating(true);
     recognition.onresult = (e) => {
-      const transcript = e.results[e.results.length - 1][0].transcript;
-      setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      let transcript = "";
+      for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+      const base = dictationBaseRef.current;
+      setInput(base ? `${base} ${transcript}` : transcript);
     };
     recognition.onend = () => setDictating(false);
-    recognition.onerror = () => {
+    recognition.onerror = (e) => {
       setDictating(false);
-      setError("La dictée a échoué. Réessayez.");
+      setError(DICTATION_ERROR_LABEL[e.error] ?? `La dictée a échoué (${e.error}).`);
     };
     recognitionRef.current = recognition;
     try {
       recognition.start();
-      setDictating(true);
     } catch {
       setDictating(false);
     }

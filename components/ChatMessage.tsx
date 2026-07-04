@@ -13,6 +13,7 @@ export interface Message {
   streaming?: boolean;
   /** Présent une fois le message persisté côté backend — nécessaire pour le feedback. */
   serverId?: string;
+  imageUrls?: string[];
 }
 
 function EditIcon() {
@@ -82,6 +83,42 @@ function RegenerateIcon() {
 
 /** Indicateur "Toumaï AI réfléchit" — affiché avant le premier token, comme
  * les trois points de ChatGPT/Gemini pendant la latence initiale. */
+function DownloadIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3v13m0 0l-4-4m4 4l4-4M4 20h16" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Image générée par l'IA — bouton de téléchargement au survol. */
+function ImageTile({ url }: { url: string }) {
+  async function download() {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "toumai-ai.png";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  return (
+    <div className="group/img relative overflow-hidden rounded-2xl border border-[var(--border)]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="Image générée par Toumaï AI" className="block w-full" loading="lazy" />
+      <button
+        onClick={download}
+        title="Télécharger"
+        aria-label="Télécharger l'image"
+        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur transition group-hover/img:opacity-100 hover:bg-black/70"
+      >
+        <DownloadIcon />
+      </button>
+    </div>
+  );
+}
+
 function TypingDots() {
   return (
     <div className="flex items-center gap-1 py-1" aria-label="Toumaï AI réfléchit">
@@ -241,6 +278,13 @@ export function ChatMessage({
           <span className="streaming-cursor ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 bg-current align-middle" />
         )}
       </div>
+      {!message.streaming && message.imageUrls && message.imageUrls.length > 0 && (
+        <div className="mt-2 grid max-w-[420px] grid-cols-2 gap-2">
+          {message.imageUrls.map((url, i) => (
+            <ImageTile key={url + i} url={url} />
+          ))}
+        </div>
+      )}
       {!message.streaming && message.content && (
         <div className="flex items-center gap-0.5 pt-1 text-[var(--text-tertiary)]">
           <button

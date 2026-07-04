@@ -125,32 +125,31 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-2 p-3">
+        <div className="px-3 pt-3 pb-1">
           <button
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="flex flex-1 items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm font-medium transition hover:bg-white/5"
+            className="flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-sm font-medium transition hover:bg-white/5"
+            style={{ background: "var(--card)" }}
           >
             <PlusIcon />
             Nouvelle conversation
           </button>
         </div>
 
-        <div className="px-3 pb-2">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-              <SearchIcon />
-            </span>
+        <div className="px-3 pb-1">
+          <label className="flex items-center gap-2.5 rounded-full px-2.5 py-2 text-[var(--text-secondary)] transition focus-within:bg-white/5 hover:bg-white/5">
+            <SearchIcon />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher une conversation…"
-              className="w-full rounded-lg border border-[var(--border)] bg-transparent py-1.5 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)]"
+              placeholder="Rechercher dans les conversations"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-secondary)]"
             />
-          </div>
+          </label>
         </div>
 
         <div className="px-3 pb-1">

@@ -2,9 +2,15 @@ import { API_BASE } from "./config";
 import { authHeaders } from "./api";
 import { handleUnauthorized } from "./session-guard";
 
+export interface StreamMetadata {
+  image_urls?: string[];
+  sources?: unknown[];
+  [key: string]: unknown;
+}
+
 export interface StreamEvent {
   chunk?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: StreamMetadata;
   done?: boolean;
   session_id?: string;
   message_id?: string;
