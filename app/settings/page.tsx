@@ -137,8 +137,9 @@ export default function SettingsPage() {
       </header>
 
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-8 md:flex-row md:gap-12">
-        {/* Navigation */}
-        <nav className="shrink-0 md:w-60">
+        {/* Navigation — sticky sous le header : seule la colonne de contenu
+            défile, la navigation reste en place (comme les consoles pro). */}
+        <nav className="shrink-0 md:sticky md:top-[76px] md:h-fit md:w-60 md:self-start">
           <div className="mb-5 flex items-center gap-3 px-2">
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"

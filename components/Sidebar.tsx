@@ -22,12 +22,28 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const COLLAPSE_KEY = "toumai_sidebar_collapsed";
+
 export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClose }: SidebarProps) {
   const { session } = useAuth();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // Repli façon Gemini (desktop uniquement) — rail d'icônes, persisté.
+  const [collapsed, setCollapsed] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === "1");
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      window.localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
+      return !c;
+    });
+  }
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -134,28 +150,61 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-all md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${collapsed ? "md:w-[68px]" : "md:w-72"}`}
       >
-        <div className="px-3 pt-3 pb-1">
+        {/* Bouton replier/déplier — comme le ☰ de Gemini (desktop). */}
+        <div className={`hidden px-3 pt-3 md:block ${collapsed ? "md:px-3.5" : ""}`}>
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Afficher le menu" : "Masquer le menu"}
+            title={collapsed ? "Afficher le menu" : "Masquer le menu"}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          >
+            <MenuIcon />
+          </button>
+        </div>
+
+        <div className={`px-3 pt-3 pb-1 md:pt-2 ${collapsed ? "md:px-3.5" : ""}`}>
           <button
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-sm font-medium transition hover:bg-[var(--hover)]"
+            title="Nouvelle conversation"
+            className={`flex items-center gap-2.5 rounded-full text-sm font-medium transition hover:bg-[var(--hover)] ${
+              collapsed ? "md:h-9 md:w-9 md:justify-center md:px-0 w-full px-2.5 py-2" : "w-full px-2.5 py-2"
+            }`}
             style={{ background: "var(--card)" }}
           >
             <PlusIcon />
-            Nouvelle conversation
+            <span className={collapsed ? "md:hidden" : ""}>Nouvelle conversation</span>
           </button>
         </div>
 
-        <div className="px-3 pb-1">
-          <label className="flex items-center gap-2.5 rounded-full px-2.5 py-2 text-[var(--text-secondary)] transition focus-within:bg-[var(--hover)] hover:bg-[var(--hover)]">
+        <div className={`px-3 pb-1 ${collapsed ? "md:px-3.5" : ""}`}>
+          {collapsed ? (
+            <button
+              onClick={() => {
+                toggleCollapsed();
+                setTimeout(() => searchRef.current?.focus(), 50);
+              }}
+              title="Rechercher dans les conversations"
+              aria-label="Rechercher dans les conversations"
+              className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--hover)] md:flex"
+            >
+              <SearchIcon />
+            </button>
+          ) : null}
+          <label
+            className={`flex items-center gap-2.5 rounded-full px-2.5 py-2 text-[var(--text-secondary)] transition focus-within:bg-[var(--hover)] hover:bg-[var(--hover)] ${
+              collapsed ? "md:hidden" : ""
+            }`}
+          >
             <SearchIcon />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -165,34 +214,28 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           </label>
         </div>
 
-        <div className="px-3 pb-1">
-          <Link
-            href="/library"
-            onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          >
-            <LibraryIcon />
-            Bibliothèque
-          </Link>
-          <Link
-            href="/agent"
-            onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          >
-            <AgentIcon />
-            Agent Navigateur
-          </Link>
-          <Link
-            href="/settings?tab=connectors"
-            onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          >
-            <PlugIcon />
-            Connecteurs
-          </Link>
+        <div className={`px-3 pb-1 ${collapsed ? "md:px-3.5" : ""}`}>
+          {[
+            { href: "/library", label: "Bibliothèque", icon: <LibraryIcon /> },
+            { href: "/agent", label: "Agent Navigateur", icon: <AgentIcon /> },
+            { href: "/settings?tab=connectors", label: "Connecteurs", icon: <PlugIcon /> },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onClose}
+              title={item.label}
+              className={`flex items-center gap-2.5 rounded-lg text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] ${
+                collapsed ? "md:h-9 md:w-9 md:justify-center md:rounded-full md:px-0 px-2.5 py-2" : "px-2.5 py-2"
+              }`}
+            >
+              {item.icon}
+              <span className={collapsed ? "md:hidden" : ""}>{item.label}</span>
+            </Link>
+          ))}
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 pb-3">
+        <nav className={`flex-1 overflow-y-auto px-2 pb-3 ${collapsed ? "md:hidden" : ""}`}>
           {loading && (
             <div className="flex flex-col gap-2 px-2 py-2" aria-hidden="true">
               {[...Array(4)].map((_, i) => (
@@ -291,10 +334,14 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           ))}
         </nav>
 
+        {collapsed && <div className="hidden flex-1 md:block" aria-hidden="true" />}
         <Link
           href="/settings"
           onClick={onClose}
-          className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-[var(--hover)]"
+          title="Paramètres"
+          className={`flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-[var(--hover)] ${
+            collapsed ? "md:justify-center md:px-0" : ""
+          }`}
         >
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white"
@@ -310,13 +357,27 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
               "…"
             )}
           </div>
-          <span className="truncate text-xs font-medium text-[var(--text-secondary)]">
+          <span
+            className={`truncate text-sm font-medium text-[var(--text-secondary)] ${
+              collapsed ? "md:hidden" : ""
+            }`}
+          >
             {!session ? "Connexion…" : displayName || "Session invité"}
           </span>
-          <SettingsIcon />
+          <span className={collapsed ? "md:hidden" : ""}>
+            <SettingsIcon />
+          </span>
         </Link>
       </aside>
     </>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+    </svg>
   );
 }
 
