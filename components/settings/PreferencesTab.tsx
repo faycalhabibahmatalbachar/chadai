@@ -84,7 +84,7 @@ export function PreferencesTab() {
                   className="rounded-lg border px-3 py-1.5 text-xs font-medium transition"
                   style={{
                     borderColor: prefs.ai_tone === t.value ? "var(--primary)" : "var(--border)",
-                    background: prefs.ai_tone === t.value ? "rgba(108,99,255,0.12)" : "transparent",
+                    background: prefs.ai_tone === t.value ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
                     color: prefs.ai_tone === t.value ? "var(--primary-light)" : "var(--text-secondary)",
                   }}
                 >
@@ -120,7 +120,7 @@ export function PreferencesTab() {
                 className="rounded-lg border px-3 py-1.5 text-xs font-medium transition"
                 style={{
                   borderColor: prefs.font_size === f.value ? "var(--primary)" : "var(--border)",
-                  background: prefs.font_size === f.value ? "rgba(108,99,255,0.12)" : "transparent",
+                  background: prefs.font_size === f.value ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "transparent",
                   color: prefs.font_size === f.value ? "var(--primary-light)" : "var(--text-secondary)",
                 }}
               >

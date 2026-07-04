@@ -1,19 +1,11 @@
 import Link from "next/link";
-import { Fraunces } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/Logo";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600"],
-  variable: "--font-display",
-});
 
 export default function Home() {
   return (
     <div
-      className={`${fraunces.variable} flex flex-1 flex-col`}
+      className="flex flex-1 flex-col"
       style={{ background: "var(--landing-bg)", color: "var(--landing-ink)" }}
     >
       <Navbar />

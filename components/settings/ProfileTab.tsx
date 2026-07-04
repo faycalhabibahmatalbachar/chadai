@@ -190,7 +190,10 @@ export function ProfileTab() {
           <p className="mb-1 text-xs text-[var(--text-tertiary)]">Formule</p>
           <span
             className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize"
-            style={{ background: "rgba(108,99,255,0.14)", color: "var(--primary-light)" }}
+            style={{
+              background: "color-mix(in srgb, var(--primary) 14%, transparent)",
+              color: "var(--primary-light)",
+            }}
           >
             {profile?.plan ?? "free"}
           </span>

@@ -113,7 +113,7 @@ export default function AgentPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-        <Link href="/chat" aria-label="Retour au chat" className="rounded-lg p-2 transition hover:bg-white/5">
+        <Link href="/chat" aria-label="Retour au chat" className="rounded-lg p-2 transition hover:bg-[var(--hover)]">
           <BackIcon />
         </Link>
         <h1 className="text-sm font-semibold">Agent Navigateur</h1>
@@ -198,7 +198,7 @@ export default function AgentPage() {
                   </button>
                   <button
                     onClick={() => respond(false)}
-                    className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm transition hover:bg-white/5"
+                    className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm transition hover:bg-[var(--hover)]"
                   >
                     Refuser
                   </button>
@@ -220,7 +220,7 @@ export default function AgentPage() {
               {!TERMINAL.has(task.status) && (
                 <button
                   onClick={cancel}
-                  className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm transition hover:bg-white/5"
+                  className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm transition hover:bg-[var(--hover)]"
                 >
                   Annuler la tâche
                 </button>

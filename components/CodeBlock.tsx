@@ -66,7 +66,7 @@ export function CodeBlock({ language, code }: { language: string; code: string }
         <span>{language || "text"}</span>
         <button
           onClick={copy}
-          className="rounded px-2 py-0.5 transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+          className="rounded px-2 py-0.5 transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
         >
           {copied ? "Copié" : "Copier"}
         </button>

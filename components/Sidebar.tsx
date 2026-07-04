@@ -144,7 +144,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
               onNewChat();
               onClose();
             }}
-            className="flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-sm font-medium transition hover:bg-white/5"
+            className="flex w-full items-center gap-2.5 rounded-full px-2.5 py-2 text-sm font-medium transition hover:bg-[var(--hover)]"
             style={{ background: "var(--card)" }}
           >
             <PlusIcon />
@@ -153,7 +153,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
         </div>
 
         <div className="px-3 pb-1">
-          <label className="flex items-center gap-2.5 rounded-full px-2.5 py-2 text-[var(--text-secondary)] transition focus-within:bg-white/5 hover:bg-white/5">
+          <label className="flex items-center gap-2.5 rounded-full px-2.5 py-2 text-[var(--text-secondary)] transition focus-within:bg-[var(--hover)] hover:bg-[var(--hover)]">
             <SearchIcon />
             <input
               type="search"
@@ -169,7 +169,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           <Link
             href="/library"
             onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             <LibraryIcon />
             Bibliothèque
@@ -177,7 +177,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           <Link
             href="/agent"
             onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             <AgentIcon />
             Agent Navigateur
@@ -185,7 +185,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           <Link
             href="/settings?tab=connectors"
             onClick={onClose}
-            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             <PlugIcon />
             Connecteurs
@@ -237,7 +237,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
                       className={`flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-left text-sm transition ${
                         s.id === activeId
                           ? "bg-[var(--card)] text-[var(--text-primary)]"
-                          : "text-[var(--text-secondary)] hover:bg-white/5"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--hover)]"
                       }`}
                     >
                       {s.pinned && <PinIcon className="shrink-0 text-[var(--text-tertiary)]" />}
@@ -263,21 +263,21 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
                       >
                         <button
                           onClick={() => togglePin(s)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-white/5"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[var(--hover)]"
                         >
                           <PinIcon />
                           {s.pinned ? "Détacher" : "Épingler"}
                         </button>
                         <button
                           onClick={() => startRename(s)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-white/5"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[var(--hover)]"
                         >
                           <EditIcon />
                           Renommer
                         </button>
                         <button
                           onClick={() => handleDelete(s.id)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--error)] transition hover:bg-white/5"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--error)] transition hover:bg-[var(--hover)]"
                         >
                           <CloseIcon />
                           Supprimer
@@ -294,7 +294,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
         <Link
           href="/settings"
           onClick={onClose}
-          className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-white/5"
+          className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-[var(--hover)]"
         >
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white"

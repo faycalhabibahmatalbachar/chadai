@@ -84,15 +84,16 @@ export default function ChatPage() {
     setGreeting(timeGreeting());
   }, []);
 
-  // Ajoute le prénom au message d'accueil pour les comptes réels (comme
+  // Prénom affiché dans l'accueil pour les comptes réels (comme
   // "À vous la parole, {NOM}" sur Gemini) — les invités gardent la version
   // générique, on n'a pas d'identité à afficher pour eux.
+  const [firstName, setFirstName] = useState<string | null>(null);
   useEffect(() => {
     if (!session || session.is_guest) return;
     getProfile()
       .then((p) => {
-        const firstName = p.full_name?.trim().split(/\s+/)[0];
-        if (firstName) setGreeting((g) => `${g}, ${firstName}`);
+        const name = p.full_name?.trim().split(/\s+/)[0];
+        if (name) setFirstName(name);
       })
       .catch(() => {});
   }, [session]);
@@ -414,7 +415,7 @@ export default function ChatPage() {
             <button
               onClick={() => setSidebarOpen(true)}
               aria-label="Ouvrir les conversations"
-              className="rounded-lg p-2 transition hover:bg-white/5 md:hidden"
+              className="rounded-lg p-2 transition hover:bg-[var(--hover)] md:hidden"
             >
               <MenuIcon />
             </button>
@@ -437,9 +438,37 @@ export default function ChatPage() {
 
             {!historyLoading && messages.length === 0 && (
               <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
-                <p className="text-4xl font-light text-[var(--text-primary)]">
+                <p className="landing-serif text-4xl tracking-tight text-[var(--text-primary)] sm:text-[40px]">
                   {greeting}
+                  {firstName && (
+                    <>
+                      ,{" "}
+                      <em style={{ color: "var(--primary)" }}>{firstName}.</em>
+                    </>
+                  )}
                 </p>
+                <p className="mt-3 text-sm text-[var(--text-tertiary)]">
+                  Comment puis-je vous aider ?
+                </p>
+                <div className="mt-8 flex max-w-lg flex-wrap justify-center gap-2.5">
+                  {[
+                    "Explique-moi un concept simplement",
+                    "Génère une image de…",
+                    "Écris une fonction Python qui…",
+                    "Traduis ce texte en arabe :",
+                  ].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setInput(s);
+                        textareaRef.current?.focus();
+                      }}
+                      className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[13px] text-[var(--text-secondary)] transition hover:border-[var(--primary)] hover:text-[var(--text-primary)]"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -483,7 +512,7 @@ export default function ChatPage() {
             {webSearch && (
               <button
                 onClick={() => setWebSearch(false)}
-                className="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-white/5"
+                className="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
                 style={{ border: "1px solid var(--border)" }}
               >
                 <GlobeIcon /> Recherche web <span aria-hidden="true">✕</span>
@@ -520,7 +549,7 @@ export default function ChatPage() {
                   onClick={() => setToolsOpen((o) => !o)}
                   aria-label="Outils"
                   title="Outils"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                 >
                   <PlusIcon />
                 </button>
@@ -533,7 +562,7 @@ export default function ChatPage() {
                           setToolsOpen(false);
                           fileInputRef.current?.click();
                         }}
-                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
                       >
                         <FileIcon />
                         Importer des fichiers
@@ -544,7 +573,7 @@ export default function ChatPage() {
                           setWebSearch((w) => !w);
                           setToolsOpen(false);
                         }}
-                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
                       >
                         <GlobeIcon />
                         Recherche web
@@ -553,14 +582,14 @@ export default function ChatPage() {
                       <div className="my-1 h-px bg-[var(--border)]" />
                       <Link
                         href="/agent"
-                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
                       >
                         <AgentIcon />
                         Agent Navigateur
                       </Link>
                       <Link
                         href="/settings?tab=connectors"
-                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
                       >
                         <PlugIcon />
                         Connecteurs
@@ -584,7 +613,7 @@ export default function ChatPage() {
                 onClick={toggleDictation}
                 aria-label={dictating ? "Arrêter la dictée" : "Dicter"}
                 title={dictating ? "Arrêter la dictée" : "Dicter"}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-white/5"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
                 style={{ color: dictating ? "var(--primary)" : "var(--text-tertiary)" }}
               >
                 {dictating ? <Waveform active height={18} /> : <MicIcon />}

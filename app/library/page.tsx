@@ -80,7 +80,7 @@ export default function LibraryPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-        <Link href="/chat" aria-label="Retour au chat" className="rounded-lg p-2 transition hover:bg-white/5">
+        <Link href="/chat" aria-label="Retour au chat" className="rounded-lg p-2 transition hover:bg-[var(--hover)]">
           <BackIcon />
         </Link>
         <h1 className="text-sm font-semibold">Bibliothèque</h1>
@@ -113,7 +113,7 @@ export default function LibraryPage() {
                       href={fileUrl(f.storage_path)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-3 rounded-2xl bg-[var(--card)] px-4 py-3 transition hover:bg-white/5"
+                      className="group flex items-center gap-3 rounded-2xl bg-[var(--card)] px-4 py-3 transition hover:bg-[var(--hover)]"
                     >
                       <span className="text-xl" aria-hidden="true">
                         {FILE_TYPE_ICON[f.file_type] ?? "📎"}
@@ -141,7 +141,7 @@ export default function LibraryPage() {
                       href={fileUrl(f.storage_path)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-3 rounded-2xl bg-[var(--card)] px-4 py-3 transition hover:bg-white/5"
+                      className="group flex items-center gap-3 rounded-2xl bg-[var(--card)] px-4 py-3 transition hover:bg-[var(--hover)]"
                     >
                       <span className="text-xl" aria-hidden="true">
                         {FILE_TYPE_ICON[f.file_type ?? "other"] ?? "📎"}

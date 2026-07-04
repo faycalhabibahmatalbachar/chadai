@@ -29,7 +29,7 @@ export function ModelSelector({
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-white/5"
+        className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
       >
         {current.name}
         <span className="text-xs text-[var(--text-tertiary)]">▾</span>
@@ -45,7 +45,7 @@ export function ModelSelector({
                   onChange(m.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/5"
+                className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]"
               >
                 <span>
                   <span className="block text-sm font-semibold">{m.name}</span>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Toumaï AI — Maquette app v2 (chat clair + sombre)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Inter",sans-serif; display:flex; height:100vh; }
+  .pane { flex:1; display:flex; overflow:hidden; }
+
+  /* ------- thème clair ------- */
+  .light {
+    --bg:#FAF7F2; --surface:#FFFFFF; --card:#F3EFE7; --line:#E5DFD3;
+    --ink:#1F1B16; --mut:#5C564B; --fnt:#98907F;
+    --terra:#C2562F; --hover:rgba(31,27,22,.06);
+  }
+  /* ------- thème sombre ------- */
+  .dark {
+    --bg:#211D18; --surface:#2A251F; --card:#322C25; --line:#3F382F;
+    --ink:#EDE7DB; --mut:#B5AC9C; --fnt:#857C6B;
+    --terra:#D97757; --hover:rgba(237,231,219,.07);
+  }
+
+  .pane { background:var(--bg); color:var(--ink); }
+  .side {
+    width:230px; flex-shrink:0; border-right:1px solid var(--line);
+    background:var(--surface); padding:12px 10px; display:flex; flex-direction:column; font-size:13px;
+  }
+  .side .new { display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:999px; font-weight:500; cursor:pointer; }
+  .side .new:hover { background:var(--hover); }
+  .side .nav { color:var(--mut); margin-top:4px; }
+  .side .nav div { padding:8px 11px; border-radius:10px; cursor:pointer; }
+  .side .nav div:hover { background:var(--hover); }
+  .side .label { font-size:11px; color:var(--fnt); padding:14px 11px 6px; }
+  .side .conv { padding:7px 11px; border-radius:10px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .side .conv.on { background:var(--card); color:var(--ink); }
+  .side .foot { margin-top:auto; border-top:1px solid var(--line); padding:10px 8px 2px; display:flex; align-items:center; gap:9px; color:var(--mut); font-size:12.5px; }
+  .side .foot .av { width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--terra),#D9A441); }
+
+  .main { flex:1; display:flex; flex-direction:column; }
+  .center { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 32px; }
+  .greet { font-family:"Fraunces",serif; font-size:34px; font-weight:400; letter-spacing:-.01em; }
+  .greet em { font-style:italic; color:var(--terra); }
+  .greet-sub { color:var(--fnt); font-size:14px; margin-top:8px; }
+  .chips { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:28px; max-width:520px; }
+  .chip {
+    border:1px solid var(--line); background:var(--surface); color:var(--mut);
+    border-radius:999px; padding:9px 16px; font-size:13px; cursor:pointer;
+  }
+  .chip:hover { border-color:var(--terra); color:var(--ink); }
+
+  .composer-zone { padding:0 24px 18px; }
+  .composer {
+    max-width:640px; margin:0 auto; border:1px solid var(--line); background:var(--surface);
+    border-radius:26px; padding:10px 12px 10px 16px; box-shadow:0 6px 24px -12px rgba(31,27,22,.10);
+  }
+  .composer .row1 { color:var(--fnt); font-size:14.5px; padding:4px 2px 10px; }
+  .composer .row2 { display:flex; align-items:center; gap:6px; }
+  .icon-btn { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--mut); cursor:pointer; font-size:15px; }
+  .icon-btn:hover { background:var(--hover); }
+  .model { margin-left:auto; font-size:13px; color:var(--mut); padding:6px 10px; border-radius:999px; cursor:pointer; }
+  .model:hover { background:var(--hover); }
+  .send { width:32px; height:32px; border-radius:50%; background:var(--terra); color:#fff; display:flex; align-items:center; justify-content:center; }
+  .hint { text-align:center; font-size:11px; color:var(--fnt); margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="pane light">
+  <div class="side">
+    <div class="new">✚ Nouvelle conversation</div>
+    <div class="nav">
+      <div>Bibliothèque</div>
+      <div>Agent Navigateur</div>
+      <div>Connecteurs</div>
+    </div>
+    <div class="label">Aujourd'hui</div>
+    <div class="conv on">Fonction Fibonacci en Python</div>
+    <div class="conv">Royaume du Kanem — résumé</div>
+    <div class="foot"><div class="av"></div> Faycal H.</div>
+  </div>
+  <div class="main">
+    <div class="center">
+      <div class="greet">Bonsoir, <em>Faycal.</em></div>
+      <div class="greet-sub">Comment puis-je vous aider ce soir ?</div>
+      <div class="chips">
+        <div class="chip">Explique-moi un concept</div>
+        <div class="chip">Génère une image</div>
+        <div class="chip">Écris du code</div>
+        <div class="chip">Résume un document</div>
+      </div>
+    </div>
+    <div class="composer-zone">
+      <div class="composer">
+        <div class="row1">Écrivez à Toumaï AI…</div>
+        <div class="row2">
+          <div class="icon-btn">＋</div>
+          <div class="icon-btn">🎙</div>
+          <div class="model">Sao 4 ▾</div>
+          <div class="send">↑</div>
+        </div>
+      </div>
+      <div class="hint">Toumaï AI peut faire des erreurs. Vérifiez les informations importantes.</div>
+    </div>
+  </div>
+</div>
+
+<div class="pane dark">
+  <div class="side">
+    <div class="new">✚ Nouvelle conversation</div>
+    <div class="nav">
+      <div>Bibliothèque</div>
+      <div>Agent Navigateur</div>
+      <div>Connecteurs</div>
+    </div>
+    <div class="label">Aujourd'hui</div>
+    <div class="conv on">Fonction Fibonacci en Python</div>
+    <div class="conv">Royaume du Kanem — résumé</div>
+    <div class="foot"><div class="av"></div> Faycal H.</div>
+  </div>
+  <div class="main">
+    <div class="center">
+      <div class="greet">Bonsoir, <em>Faycal.</em></div>
+      <div class="greet-sub">Comment puis-je vous aider ce soir ?</div>
+      <div class="chips">
+        <div class="chip">Explique-moi un concept</div>
+        <div class="chip">Génère une image</div>
+        <div class="chip">Écris du code</div>
+        <div class="chip">Résume un document</div>
+      </div>
+    </div>
+    <div class="composer-zone">
+      <div class="composer">
+        <div class="row1">Écrivez à Toumaï AI…</div>
+        <div class="row2">
+          <div class="icon-btn">＋</div>
+          <div class="icon-btn">🎙</div>
+          <div class="model">Sao 4 ▾</div>
+          <div class="send">↑</div>
+        </div>
+      </div>
+      <div class="hint">Toumaï AI peut faire des erreurs. Vérifiez les informations importantes.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

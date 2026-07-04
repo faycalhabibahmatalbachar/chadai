@@ -250,7 +250,7 @@ export function ChatMessage({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setEditing(false)}
-                className="rounded-lg px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-white/5"
+                className="rounded-lg px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
               >
                 Annuler
               </button>
@@ -334,7 +334,7 @@ export function ChatMessage({
             onClick={copy}
             title="Copier"
             aria-label="Copier la réponse"
-            className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+            className="rounded-md p-1.5 transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
@@ -346,7 +346,7 @@ export function ChatMessage({
                 aria-label="Bonne réponse"
                 aria-pressed={rated === "up"}
                 disabled={!!rated}
-                className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] disabled:opacity-100"
+                className="rounded-md p-1.5 transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-100"
                 style={
                   rated === "up"
                     ? { color: "var(--success)", background: "rgba(16,185,129,0.14)" }
@@ -361,7 +361,7 @@ export function ChatMessage({
                 aria-label="Mauvaise réponse"
                 aria-pressed={rated === "down"}
                 disabled={!!rated}
-                className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] disabled:opacity-100"
+                className="rounded-md p-1.5 transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-100"
                 style={
                   rated === "down"
                     ? { color: "var(--error)", background: "rgba(239,68,68,0.14)" }
@@ -382,7 +382,7 @@ export function ChatMessage({
               onClick={onRegenerate}
               title="Régénérer"
               aria-label="Régénérer la réponse"
-              className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)]"
+              className="rounded-md p-1.5 transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
             >
               <RegenerateIcon />
             </button>

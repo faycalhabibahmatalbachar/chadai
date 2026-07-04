@@ -301,7 +301,7 @@ export function VoiceModeOverlay({
       <button
         onClick={close}
         aria-label="Fermer le mode vocal"
-        className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/5"
+        className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
       >
         <CloseIcon />
       </button>
