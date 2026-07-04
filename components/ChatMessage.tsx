@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { sendFeedback } from "@/lib/chat-api";
 import { CodeBlock } from "./CodeBlock";
+import { Logo } from "./Logo";
 
 export interface Message {
   id: string;
@@ -45,9 +46,9 @@ function CheckIcon() {
   );
 }
 
-function ThumbUpIcon() {
+function ThumbUpIcon({ filled }: { filled?: boolean }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
       <path
         d="M7 22V11M2 13v7a2 2 0 002 2h12.6a2 2 0 002-1.6l1.3-6.5a2 2 0 00-2-2.4H14V6a3 3 0 00-3-3l-4 8v9"
         strokeLinecap="round"
@@ -57,9 +58,9 @@ function ThumbUpIcon() {
   );
 }
 
-function ThumbDownIcon() {
+function ThumbDownIcon({ filled }: { filled?: boolean }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
       <path
         d="M17 2v11M22 11V4a2 2 0 00-2-2H7.4a2 2 0 00-2 1.6l-1.3 6.5a2 2 0 002 2.4H10v5a3 3 0 003 3l4-8V2"
         strokeLinecap="round"
@@ -93,7 +94,10 @@ function DownloadIcon() {
 
 /** Image générée par l'IA — bouton de téléchargement au survol. */
 function ImageTile({ url }: { url: string }) {
-  async function download() {
+  const [preview, setPreview] = useState(false);
+
+  async function download(e: React.MouseEvent) {
+    e.stopPropagation();
     const res = await fetch(url);
     const blob = await res.blob();
     const a = document.createElement("a");
@@ -104,18 +108,61 @@ function ImageTile({ url }: { url: string }) {
   }
 
   return (
-    <div className="group/img relative overflow-hidden rounded-2xl border border-[var(--border)]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="Image générée par Toumaï AI" className="block w-full" loading="lazy" />
-      <button
-        onClick={download}
-        title="Télécharger"
-        aria-label="Télécharger l'image"
-        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur transition group-hover/img:opacity-100 hover:bg-black/70"
+    <>
+      <div
+        className="group/img relative cursor-zoom-in overflow-hidden rounded-2xl border border-[var(--border)]"
+        onClick={() => setPreview(true)}
+        role="button"
+        tabIndex={0}
+        aria-label="Agrandir l'image"
       >
-        <DownloadIcon />
-      </button>
-    </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="Image générée par Toumaï AI" className="block w-full" loading="lazy" />
+        <div
+          className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-black/40 backdrop-blur"
+          title="Généré par Toumaï AI"
+          aria-hidden="true"
+        >
+          <Logo size={16} />
+        </div>
+        <button
+          onClick={download}
+          title="Télécharger"
+          aria-label="Télécharger l'image"
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 backdrop-blur transition group-hover/img:opacity-100 hover:bg-black/70"
+        >
+          <DownloadIcon />
+        </button>
+      </div>
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setPreview(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt="Image générée par Toumaï AI — aperçu"
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+          <button
+            onClick={() => setPreview(false)}
+            aria-label="Fermer l'aperçu"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -303,11 +350,14 @@ export function ChatMessage({
                 aria-label="Bonne réponse"
                 aria-pressed={rated === "up"}
                 disabled={!!rated}
-                className={`rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] ${
-                  rated === "up" ? "text-[var(--text-primary)]" : ""
-                }`}
+                className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] disabled:opacity-100"
+                style={
+                  rated === "up"
+                    ? { color: "var(--success)", background: "rgba(16,185,129,0.14)" }
+                    : undefined
+                }
               >
-                <ThumbUpIcon />
+                <ThumbUpIcon filled={rated === "up"} />
               </button>
               <button
                 onClick={() => rate("down")}
@@ -315,12 +365,20 @@ export function ChatMessage({
                 aria-label="Mauvaise réponse"
                 aria-pressed={rated === "down"}
                 disabled={!!rated}
-                className={`rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] ${
-                  rated === "down" ? "text-[var(--text-primary)]" : ""
-                }`}
+                className="rounded-md p-1.5 transition hover:bg-white/5 hover:text-[var(--text-primary)] disabled:opacity-100"
+                style={
+                  rated === "down"
+                    ? { color: "var(--error)", background: "rgba(239,68,68,0.14)" }
+                    : undefined
+                }
               >
-                <ThumbDownIcon />
+                <ThumbDownIcon filled={rated === "down"} />
               </button>
+              {rated && (
+                <span className="animate-fade-in pl-1 text-xs text-[var(--text-tertiary)]">
+                  Merci pour votre retour !
+                </span>
+              )}
             </>
           )}
           {onRegenerate && (
