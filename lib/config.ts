@@ -5,3 +5,7 @@ export const API_BASE =
 
 export const SITE_NAME = "Toumaï AI";
 export const SITE_TAGLINE = "Votre assistant IA, toujours là.";
+
+// Optionnel — si absent, le bouton "Continuer avec Google" ne s'affiche pas
+// du tout plutôt que d'afficher un bouton non fonctionnel.
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";

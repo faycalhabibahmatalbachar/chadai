@@ -89,6 +89,16 @@ export async function register(
   return null;
 }
 
+export async function loginWithGoogle(idToken: string): Promise<TokenPayload> {
+  const res = await request<TokenPayload>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+  if (!res.data) throw new Error("Réponse invalide du serveur");
+  saveSession(res.data);
+  return res.data;
+}
+
 /** Client fetch authentifié — ajoute le Bearer token de la session courante. */
 export function authHeaders(): HeadersInit {
   const session = loadSession();

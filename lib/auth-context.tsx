@@ -14,6 +14,7 @@ import {
   guestLogin,
   loadSession,
   login as apiLogin,
+  loginWithGoogle as apiLoginWithGoogle,
   register as apiRegister,
   type TokenPayload,
 } from "./api";
@@ -23,6 +24,7 @@ interface AuthState {
   loading: boolean;
   loginAsGuest: () => Promise<void>;
   loginWithPassword: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   registerAccount: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -48,6 +50,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(s);
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const s = await apiLoginWithGoogle(idToken);
+    setSession(s);
+  }, []);
+
   const registerAccount = useCallback(
     async (email: string, password: string, name: string) => {
       const s = await apiRegister(email, password, name);
@@ -67,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, loading, loginAsGuest, loginWithPassword, registerAccount, logout }}
+      value={{ session, loading, loginAsGuest, loginWithPassword, loginWithGoogle, registerAccount, logout }}
     >
       {children}
     </AuthContext.Provider>

@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginWithPassword, loginAsGuest } = useAuth();
+  const { loginWithPassword, loginWithGoogle, loginAsGuest } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,19 @@ export default function LoginPage() {
       router.push("/chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Échec de connexion");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onGoogleCredential(idToken: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      await loginWithGoogle(idToken);
+      router.push("/chat");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de connexion Google");
     } finally {
       setLoading(false);
     }
@@ -43,22 +58,32 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm">
-        <Link href="/" className="mb-8 block text-center text-2xl font-bold">
-          Toumaï AI
-        </Link>
-        <h1 className="mb-1 text-center text-xl font-semibold">Se connecter</h1>
+        <div className="mb-6 flex justify-center">
+          <Logo size={44} />
+        </div>
+        <h1 className="mb-2 text-center text-2xl font-semibold">Content de vous revoir</h1>
         <p className="mb-8 text-center text-sm text-[var(--text-secondary)]">
-          Retrouvez vos conversations et préférences.
+          Connectez-vous pour retrouver vos conversations et préférences.
         </p>
 
-        <form onSubmit={submit} className="space-y-4">
+        <div className="mb-5">
+          <GoogleSignInButton onCredential={onGoogleCredential} />
+        </div>
+
+        <div className="my-6 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
+          <div className="h-px flex-1 bg-[var(--border)]" />
+          OU
+          <div className="h-px flex-1 bg-[var(--border)]" />
+        </div>
+
+        <form onSubmit={submit} className="space-y-3">
           <input
             type="email"
             required
-            placeholder="Email"
+            placeholder="Adresse e-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm outline-none focus:border-[var(--primary)]"
+            className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm outline-none focus:border-[var(--primary)]"
           />
           <input
             type="password"
@@ -66,29 +91,23 @@ export default function LoginPage() {
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm outline-none focus:border-[var(--primary)]"
+            className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] px-5 py-3 text-sm outline-none focus:border-[var(--primary)]"
           />
-          {error && <p className="text-sm text-[var(--error)]">{error}</p>}
+          {error && <p className="px-2 text-sm text-[var(--error)]">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-full py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
             style={{ background: "var(--primary)" }}
           >
-            {loading ? "Connexion…" : "Se connecter"}
+            {loading ? "Connexion…" : "Continuer"}
           </button>
         </form>
-
-        <div className="my-6 flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
-          <div className="h-px flex-1 bg-[var(--border)]" />
-          ou
-          <div className="h-px flex-1 bg-[var(--border)]" />
-        </div>
 
         <button
           onClick={tryGuest}
           disabled={loading}
-          className="w-full rounded-xl border border-[var(--border)] py-3 text-sm font-semibold transition hover:border-[var(--primary)] disabled:opacity-50"
+          className="mt-3 w-full rounded-full border border-[var(--border)] py-3 text-sm font-semibold transition hover:border-[var(--primary)] disabled:opacity-50"
         >
           Continuer sans compte
         </button>
