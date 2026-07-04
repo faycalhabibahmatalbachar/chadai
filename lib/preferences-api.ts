@@ -13,6 +13,8 @@ export interface Preferences {
   notif_calendar: boolean;
   notif_suggestions: boolean;
   timezone: string;
+  tts_voice?: string;
+  tts_speed?: number;
 }
 
 export type PreferencesUpdate = Partial<

@@ -6,6 +6,9 @@ export const API_BASE =
 export const SITE_NAME = "Toumaï AI";
 export const SITE_TAGLINE = "Votre assistant IA, toujours là.";
 
-// Optionnel — si absent, le bouton "Continuer avec Google" ne s'affiche pas
-// du tout plutôt que d'afficher un bouton non fonctionnel.
-export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+// Identifiant client OAuth Google — public par nature (contrairement au
+// client secret), sans risque à committer, comme API_BASE ci-dessus.
+// Même client que celui utilisé pour Google Agenda côté backend.
+export const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ??
+  "431553802094-ov2mkc9kvl0bofcn32hgpjgu5428gqck.apps.googleusercontent.com";

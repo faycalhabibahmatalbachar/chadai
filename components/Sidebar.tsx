@@ -11,6 +11,7 @@ import {
   setSessionPinned,
   type ChatSession,
 } from "@/lib/chat-api";
+import { getProfile } from "@/lib/user-api";
 
 interface SidebarProps {
   activeId: string | null;
@@ -31,7 +32,19 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   const [menuId, setMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!session || session.is_guest) return;
+    getProfile()
+      .then((p) => {
+        setDisplayName(p.full_name ?? null);
+        setAvatarUrl(p.avatar_url ?? null);
+      })
+      .catch(() => {});
+  }, [session]);
 
   useEffect(() => {
     if (!menuId) return;
@@ -284,14 +297,21 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-white/5"
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white"
             style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
             aria-hidden="true"
           >
-            {session ? "V" : "…"}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : session ? (
+              (displayName?.trim()[0] ?? "V").toUpperCase()
+            ) : (
+              "…"
+            )}
           </div>
           <span className="truncate text-xs font-medium text-[var(--text-secondary)]">
-            {session ? "Session invité" : "Connexion…"}
+            {!session ? "Connexion…" : displayName || "Session invité"}
           </span>
           <SettingsIcon />
         </Link>

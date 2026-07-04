@@ -11,6 +11,8 @@ import { ChatMessage, type Message } from "@/components/ChatMessage";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Sidebar } from "@/components/Sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Waveform } from "@/components/Waveform";
+import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 
 /** Sous-ensemble minimal de la Web Speech API (non standardisée dans lib.dom). */
 interface SpeechRecognitionLike extends EventTarget {
@@ -62,6 +64,7 @@ export default function ChatPage() {
   const [webSearch, setWebSearch] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [dictating, setDictating] = useState(false);
+  const [voiceModeOpen, setVoiceModeOpen] = useState(false);
   const [attachedDoc, setAttachedDoc] = useState<UploadedDocument | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -227,7 +230,12 @@ export default function ChatPage() {
     await runStream(newContent, assistantId, isFirstMessage, edited.id);
   }
 
-  async function runStream(text: string, assistantId: string, isFirstMessage: boolean, userMsgId?: string) {
+  async function runStream(
+    text: string,
+    assistantId: string,
+    isFirstMessage: boolean,
+    userMsgId?: string,
+  ): Promise<string> {
     setSending(true);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -286,6 +294,25 @@ export default function ChatPage() {
       setSending(false);
       abortRef.current = null;
     }
+    return acc;
+  }
+
+  /** Envoie un texte (transcrit depuis la voix) et attend la réponse complète
+   * — utilisé par le mode vocal, qui doit ensuite synthétiser la réponse. */
+  async function voiceSend(text: string): Promise<string> {
+    const trimmed = text.trim();
+    if (!trimmed || sending || !session) return "";
+    stickToBottomRef.current = true;
+    lastUserMessageRef.current = trimmed;
+    const isFirstMessage = messages.length === 0;
+    const userMsg: Message = { id: nextId(), role: "user", content: trimmed };
+    const assistantId = nextId();
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: assistantId, role: "assistant", content: "", streaming: true },
+    ]);
+    return runStream(trimmed, assistantId, isFirstMessage, userMsg.id);
   }
 
   function stopGenerating() {
@@ -556,7 +583,17 @@ export default function ChatPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-white/5"
                 style={{ color: dictating ? "var(--primary)" : "var(--text-tertiary)" }}
               >
-                <MicIcon />
+                {dictating ? <Waveform active height={18} /> : <MicIcon />}
+              </button>
+              <button
+                onClick={() => setVoiceModeOpen(true)}
+                aria-label="Mode vocal"
+                title="Mode vocal"
+                disabled={!session}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white transition hover:opacity-90 disabled:opacity-30"
+                style={{ background: "var(--thinking)" }}
+              >
+                <VoiceModeIcon />
               </button>
               {sending ? (
                 <button
@@ -586,6 +623,9 @@ export default function ChatPage() {
           </div>
         </footer>
       </div>
+      {voiceModeOpen && (
+        <VoiceModeOverlay onSend={voiceSend} onClose={() => setVoiceModeOpen(false)} />
+      )}
     </div>
   );
 }
@@ -686,6 +726,14 @@ function MicIcon() {
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <rect x="9" y="2" width="6" height="12" rx="3" />
       <path d="M5 10a7 7 0 0014 0M12 19v3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function VoiceModeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0" strokeLinecap="round" />
     </svg>
   );
 }
