@@ -8,21 +8,37 @@ import { Logo } from "./Logo";
 
 type Phase = "listening" | "processing" | "speaking" | "error";
 
-const SILENCE_THRESHOLD = 0.1;
-const SILENCE_MS_TO_STOP = 1500;
-const MIN_RECORD_MS = 600;
+// useMicLevels renvoie un plancher artificiel de 0.08 même en silence total
+// (pour que les barres restent visibles à l'écran) — un seuil fixe se
+// retrouvait donc quasi toujours au-dessus du bruit ambiant réel, empêchant
+// l'arrêt automatique de se déclencher (bug réel : l'utilisateur devait
+// cliquer "Terminer ma phrase" à chaque fois). On calibre désormais le bruit
+// ambiant en tout début d'écoute, puis on exige un dépassement net de ce
+// plancher pour considérer que l'utilisateur parle.
+const CALIBRATION_MS = 350;
+const SPEAKING_MARGIN = 0.13;
+const SILENCE_MS_TO_STOP = 1100;
+const MIN_RECORD_MS = 500;
+const MAX_RECORD_MS = 20000; // garde-fou : ne jamais rester bloqué en écoute
+
+// Découpe la réponse en phrases complètes dès qu'elles arrivent dans le flux,
+// pour lancer la synthèse vocale phrase par phrase (temps réel) plutôt que
+// d'attendre la réponse entière avant de commencer à parler.
+const SENTENCE_END = /^([\s\S]*?[.!?…:])(\s+|$)/;
 
 export function VoiceModeOverlay({
   onSend,
   onClose,
 }: {
-  /** Envoie le texte transcrit dans la conversation et renvoie la réponse
-   * complète de l'IA (attend la fin du streaming). */
-  onSend: (text: string) => Promise<string>;
+  /** Envoie le texte transcrit dans la conversation ; `onChunk` est appelé
+   * pour chaque fragment de la réponse dès qu'il arrive (streaming), et la
+   * promesse se résout avec le texte complet une fois le flux terminé. */
+  onSend: (text: string, onChunk?: (chunk: string) => void) => Promise<string>;
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("listening");
   const [caption, setCaption] = useState("");
+  const [replyCaption, setReplyCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [voice, setVoice] = useState<string | undefined>(undefined);
 
@@ -33,6 +49,9 @@ export function VoiceModeOverlay({
   const closedRef = useRef(false);
   const startedAtRef = useRef(0);
   const silenceSinceRef = useRef<number | null>(null);
+  const hasSpokenRef = useRef(false);
+  const noiseFloorRef = useRef(0.08);
+  const calibrationSamplesRef = useRef<number[]>([]);
 
   const listening = phase === "listening";
   const levels = useMicLevels(listening, 5);
@@ -54,12 +73,28 @@ export function VoiceModeOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Arrêt automatique après un silence, une fois qu'on a commencé à parler.
+  // Calibration du bruit ambiant + détection de silence après prise de parole.
   useEffect(() => {
     if (phase !== "listening") return;
     const avg = levels.reduce((a, b) => a + b, 0) / levels.length;
     const elapsed = Date.now() - startedAtRef.current;
-    if (avg < SILENCE_THRESHOLD) {
+
+    if (elapsed < CALIBRATION_MS) {
+      calibrationSamplesRef.current.push(avg);
+      return;
+    }
+    if (calibrationSamplesRef.current.length && noiseFloorRef.current === 0.08) {
+      const samples = calibrationSamplesRef.current;
+      noiseFloorRef.current = samples.reduce((a, b) => a + b, 0) / samples.length;
+    }
+
+    const speakingThreshold = noiseFloorRef.current + SPEAKING_MARGIN;
+    const isSpeaking = avg > speakingThreshold;
+
+    if (isSpeaking) {
+      hasSpokenRef.current = true;
+      silenceSinceRef.current = null;
+    } else if (hasSpokenRef.current) {
       if (silenceSinceRef.current === null) silenceSinceRef.current = Date.now();
       else if (
         elapsed > MIN_RECORD_MS &&
@@ -68,8 +103,10 @@ export function VoiceModeOverlay({
       ) {
         stopListening();
       }
-    } else {
-      silenceSinceRef.current = null;
+    }
+
+    if (elapsed > MAX_RECORD_MS && chunksRef.current.length > 0) {
+      stopListening();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levels, phase]);
@@ -87,8 +124,12 @@ export function VoiceModeOverlay({
   async function startListening() {
     setError(null);
     setCaption("");
+    setReplyCaption("");
     chunksRef.current = [];
     silenceSinceRef.current = null;
+    hasSpokenRef.current = false;
+    noiseFloorRef.current = 0.08;
+    calibrationSamplesRef.current = [];
     startedAtRef.current = Date.now();
     setPhase("listening");
     try {
@@ -115,6 +156,30 @@ export function VoiceModeOverlay({
     streamRef.current = null;
   }
 
+  /** Joue une file de segments audio (base64) dans l'ordre, en attendant que
+   * chaque synthèse soit prête — mais celles-ci tournent en parallèle en
+   * arrière-plan pendant que le segment précédent joue encore. */
+  async function playQueueInOrder(
+    queue: Promise<{ audio_base64: string; mime_type: string } | null>[],
+  ) {
+    for (const p of queue) {
+      if (closedRef.current) return;
+      const result = await p.catch(() => null);
+      if (!result || closedRef.current) continue;
+      await playAudio(result.audio_base64, result.mime_type);
+    }
+  }
+
+  function playAudio(audioBase64: string, mimeType: string): Promise<void> {
+    return new Promise((resolve) => {
+      const audio = new Audio(`data:${mimeType};base64,${audioBase64}`);
+      audioElRef.current = audio;
+      audio.onended = () => resolve();
+      audio.onerror = () => resolve();
+      audio.play().catch(() => resolve());
+    });
+  }
+
   async function handleRecordingStopped() {
     if (closedRef.current) return;
     if (!chunksRef.current.length) return;
@@ -127,24 +192,50 @@ export function VoiceModeOverlay({
         return;
       }
       setCaption(text);
-      const reply = await onSend(text);
+
+      // Synthèse phrase par phrase : dès qu'une phrase complète arrive dans
+      // le flux, on lance sa synthèse vocale immédiatement en arrière-plan,
+      // sans attendre la fin de la réponse — c'est ce qui rend la conversation
+      // perceptiblement instantanée plutôt que d'attendre le texte entier.
+      let buffer = "";
+      let spokenAnything = false;
+      let playbackPromise: Promise<void> | null = null;
+      const audioQueue: Promise<{ audio_base64: string; mime_type: string } | null>[] = [];
+
+      function flushSentence(sentence: string) {
+        const trimmed = sentence.trim();
+        if (!trimmed) return;
+        spokenAnything = true;
+        audioQueue.push(synthesizeSpeech(trimmed, voice).catch(() => null));
+        if (audioQueue.length === 1) {
+          setPhase("speaking");
+          playbackPromise = playQueueInOrder(audioQueue);
+        }
+      }
+
+      const reply = await onSend(text, (chunk) => {
+        if (closedRef.current) return;
+        setReplyCaption((prev) => prev + chunk);
+        buffer += chunk;
+        let match: RegExpExecArray | null;
+        while ((match = SENTENCE_END.exec(buffer))) {
+          flushSentence(match[1]);
+          buffer = buffer.slice(match[0].length);
+        }
+      });
       if (closedRef.current) return;
-      if (!reply.trim()) {
+      if (buffer.trim()) flushSentence(buffer);
+
+      if (!reply.trim() && !spokenAnything) {
         startListening();
         return;
       }
-      setPhase("speaking");
-      const { audio_base64, mime_type } = await synthesizeSpeech(reply, voice);
-      if (closedRef.current) return;
-      const audio = new Audio(`data:${mime_type};base64,${audio_base64}`);
-      audioElRef.current = audio;
-      audio.onended = () => {
-        if (!closedRef.current) startListening();
-      };
-      audio.onerror = () => {
-        if (!closedRef.current) startListening();
-      };
-      await audio.play();
+
+      // playQueueInOrder consomme la file au fur et à mesure qu'elle se
+      // remplit (même tableau référencé) ; on attend juste sa fin réelle
+      // pour rouvrir le micro seulement une fois la dernière phrase jouée.
+      if (playbackPromise) await playbackPromise;
+      if (!closedRef.current) startListening();
     } catch (err) {
       if (closedRef.current) return;
       setError(err instanceof Error ? err.message : "Erreur pendant la conversation vocale.");
@@ -190,9 +281,14 @@ export function VoiceModeOverlay({
       </div>
 
       <p className="mb-2 text-sm text-[var(--text-tertiary)]">{phaseLabel[phase]}</p>
-      {caption && (
+      {caption && phase !== "speaking" && (
         <p className="max-w-md px-6 text-center text-sm text-[var(--text-secondary)]">
           « {caption} »
+        </p>
+      )}
+      {phase === "speaking" && replyCaption && (
+        <p className="max-w-md px-6 text-center text-sm text-[var(--text-secondary)]">
+          {replyCaption}
         </p>
       )}
       {error && <p className="mt-2 max-w-md px-6 text-center text-sm text-[var(--error)]">{error}</p>}

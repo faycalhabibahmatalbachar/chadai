@@ -235,6 +235,7 @@ export default function ChatPage() {
     assistantId: string,
     isFirstMessage: boolean,
     userMsgId?: string,
+    onChunk?: (chunk: string) => void,
   ): Promise<string> {
     setSending(true);
     const controller = new AbortController();
@@ -249,6 +250,7 @@ export default function ChatPage() {
         (evt) => {
           if (evt.chunk) {
             acc += evt.chunk;
+            onChunk?.(evt.chunk);
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m)),
             );
@@ -298,8 +300,10 @@ export default function ChatPage() {
   }
 
   /** Envoie un texte (transcrit depuis la voix) et attend la réponse complète
-   * — utilisé par le mode vocal, qui doit ensuite synthétiser la réponse. */
-  async function voiceSend(text: string): Promise<string> {
+   * — utilisé par le mode vocal. `onChunk` reçoit chaque fragment dès qu'il
+   * arrive, pour permettre une synthèse vocale phrase par phrase en temps
+   * réel plutôt que d'attendre la réponse entière avant de parler. */
+  async function voiceSend(text: string, onChunk?: (chunk: string) => void): Promise<string> {
     const trimmed = text.trim();
     if (!trimmed || sending || !session) return "";
     stickToBottomRef.current = true;
@@ -312,7 +316,7 @@ export default function ChatPage() {
       userMsg,
       { id: assistantId, role: "assistant", content: "", streaming: true },
     ]);
-    return runStream(trimmed, assistantId, isFirstMessage, userMsg.id);
+    return runStream(trimmed, assistantId, isFirstMessage, userMsg.id, onChunk);
   }
 
   function stopGenerating() {
