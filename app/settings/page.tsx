@@ -27,6 +27,15 @@ export default function SettingsPage() {
     loginAsGuest().catch(() => {});
   }, [loading, session, loginAsGuest]);
 
+  // Permet un lien direct vers un onglet (ex: depuis le menu Outils du chat)
+  // sans passer par useSearchParams (évite la contrainte Suspense en export statique).
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested === "profile" || requested === "preferences" || requested === "connectors") {
+      setTab(requested);
+    }
+  }, []);
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">

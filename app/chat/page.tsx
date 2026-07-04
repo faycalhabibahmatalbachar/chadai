@@ -254,19 +254,30 @@ export default function ChatPage() {
 
   /** Dictée vocale (Web Speech API) — Chrome/Edge uniquement, absent sur
    * Firefox/Safari : le bouton reste alors simplement inactif. */
-  function toggleDictation() {
+  async function toggleDictation() {
     if (dictating) {
       recognitionRef.current?.stop();
+      setDictating(false);
       return;
     }
     const Ctor =
-      (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike })
-        .SpeechRecognition ??
+      (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition ??
       (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
     if (!Ctor) {
       setError("La dictée vocale n'est pas prise en charge par ce navigateur.");
       return;
     }
+    // Demande explicite du micro d'abord : sur certains navigateurs (Edge
+    // inclus), SpeechRecognition seul échoue silencieusement en 'not-allowed'
+    // sans jamais déclencher la vraie invite de permission du micro.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      setError("Accès au microphone refusé — autorisez-le dans les paramètres du navigateur.");
+      return;
+    }
+
     const recognition = new Ctor();
     recognition.lang = "fr-FR";
     recognition.continuous = false;
@@ -276,10 +287,17 @@ export default function ChatPage() {
       setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
     };
     recognition.onend = () => setDictating(false);
-    recognition.onerror = () => setDictating(false);
+    recognition.onerror = () => {
+      setDictating(false);
+      setError("La dictée a échoué. Réessayez.");
+    };
     recognitionRef.current = recognition;
-    recognition.start();
-    setDictating(true);
+    try {
+      recognition.start();
+      setDictating(true);
+    } catch {
+      setDictating(false);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -408,6 +426,21 @@ export default function ChatPage() {
                         Recherche web
                         {webSearch && <CheckIcon className="ml-auto" />}
                       </button>
+                      <div className="my-1 h-px bg-[var(--border)]" />
+                      <Link
+                        href="/agent"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                      >
+                        <AgentIcon />
+                        Agent Navigateur
+                      </Link>
+                      <Link
+                        href="/settings?tab=connectors"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-white/5"
+                      >
+                        <PlugIcon />
+                        Connecteurs
+                      </Link>
                     </div>
                   </>
                 )}
@@ -422,6 +455,7 @@ export default function ChatPage() {
                 disabled={!session}
                 className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-[var(--text-tertiary)]"
               />
+              <ModelSelector value={model} onChange={setModel} />
               <button
                 onClick={toggleDictation}
                 aria-label={dictating ? "Arrêter la dictée" : "Dicter"}
@@ -431,7 +465,6 @@ export default function ChatPage() {
               >
                 <MicIcon />
               </button>
-              <ModelSelector value={model} onChange={setModel} />
               {sending ? (
                 <button
                   onClick={stopGenerating}
@@ -517,6 +550,27 @@ function GlobeIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <circle cx="12" cy="12" r="9" />
       <path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AgentIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="4" width="18" height="14" rx="2" />
+      <path d="M3 9h18M8 21h8M12 18v3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlugIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path
+        d="M9 2v4M15 2v4M7 7h10l-1 5a4 4 0 01-4 3.5v0A4 4 0 018 12l-1-5zM12 15.5V22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
