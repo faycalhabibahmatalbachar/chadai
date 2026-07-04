@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Maquette Settings v3 — console entreprise</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#FAF7F2; --surface:#FFFFFF; --card:#F3EFE7; --line:#E5DFD3;
+    --ink:#1F1B16; --mut:#5C564B; --fnt:#98907F; --terra:#C2562F;
+    --hover:rgba(31,27,22,.06); --ok:#10b981;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Inter",sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+
+  .top { display:flex; align-items:center; gap:12px; padding:14px 24px; border-bottom:1px solid var(--line); }
+  .top .back { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .top .back:hover { background:var(--hover); }
+  .top h1 { font-size:15px; font-weight:600; }
+
+  .shell { display:flex; max-width:1060px; margin:0 auto; gap:40px; padding:32px 24px; }
+
+  .nav { width:220px; flex-shrink:0; }
+  .nav .who { display:flex; gap:10px; align-items:center; padding:4px 10px 18px; }
+  .nav .who .av { width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,var(--terra),#D9A441); }
+  .nav .who b { display:block; font-size:13.5px; }
+  .nav .who span { font-size:11.5px; color:var(--fnt); }
+  .nav a { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:9px; color:var(--mut); text-decoration:none; margin-bottom:2px; }
+  .nav a:hover { background:var(--hover); }
+  .nav a.on { background:var(--card); color:var(--ink); font-weight:500; }
+  .nav .sep { height:1px; background:var(--line); margin:12px 10px; }
+  .nav .ic { width:16px; text-align:center; opacity:.75; }
+
+  .content { flex:1; min-width:0; }
+  .content h2 { font-size:19px; font-weight:600; margin-bottom:4px; }
+  .content .sub { color:var(--fnt); font-size:13px; margin-bottom:22px; }
+
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; margin-bottom:24px; overflow:hidden; }
+  .panel .head { padding:14px 18px 0; font-size:13px; font-weight:600; color:var(--fnt); text-transform:uppercase; letter-spacing:.05em; font-size:11.5px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:15px 18px; }
+  .row + .row { border-top:1px solid var(--line); }
+  .row .l b { display:block; font-size:14px; font-weight:500; }
+  .row .l span { font-size:12.5px; color:var(--fnt); }
+  .row .r { flex-shrink:0; display:flex; align-items:center; gap:8px; }
+
+  .input { border:1px solid var(--line); background:var(--bg); border-radius:9px; padding:8px 12px; font-size:13.5px; width:220px; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .seg div { padding:7px 14px; font-size:12.5px; color:var(--mut); cursor:pointer; }
+  .seg div.on { background:var(--card); color:var(--ink); font-weight:500; }
+  .seg div + div { border-left:1px solid var(--line); }
+  .switch { width:36px; height:21px; border-radius:999px; background:var(--terra); position:relative; }
+  .switch::after { content:""; position:absolute; top:2.5px; right:2.5px; width:16px; height:16px; border-radius:50%; background:#fff; }
+  .switch.off { background:var(--line); } .switch.off::after { right:auto; left:2.5px; }
+
+  .voice { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; }
+  .voice + .voice { border-top:1px solid var(--line); }
+  .voice .play { width:32px; height:32px; border-radius:50%; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--terra); }
+  .voice .meta b { display:block; font-size:13.5px; font-weight:500; }
+  .voice .meta span { font-size:12px; color:var(--fnt); }
+  .voice .pick { width:18px; height:18px; border-radius:50%; border:2px solid var(--line); }
+  .voice.on .pick { border-color:var(--terra); background:radial-gradient(circle, var(--terra) 45%, transparent 50%); }
+  .badge { font-size:10.5px; background:var(--card); color:var(--mut); border-radius:999px; padding:2px 8px; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="back">←</div>
+  <h1>Paramètres</h1>
+</div>
+
+<div class="shell">
+  <nav class="nav">
+    <div class="who">
+      <div class="av"></div>
+      <div><b>Faycal H.</b><span>Formule Free</span></div>
+    </div>
+    <a class="on"><span class="ic">◐</span> Général</a>
+    <a><span class="ic">✦</span> Personnalisation</a>
+    <a><span class="ic">◨</span> Apparence</a>
+    <a><span class="ic">♪</span> Voix</a>
+    <a><span class="ic">◔</span> Notifications</a>
+    <a><span class="ic">⌘</span> Connecteurs</a>
+    <div class="sep"></div>
+    <a><span class="ic">✆</span> Aide &amp; Support</a>
+  </nav>
+
+  <div class="content">
+    <h2>Personnalisation</h2>
+    <p class="sub">Adaptez le comportement de Toumaï AI à votre façon de travailler.</p>
+
+    <div class="panel">
+      <div class="row">
+        <div class="l"><b>Nom de l'assistant</b><span>Comment l'assistant doit-il s'appeler ?</span></div>
+        <div class="r"><input class="input" value="Toumaï"></div>
+      </div>
+      <div class="row">
+        <div class="l"><b>Ton des réponses</b><span>Style d'écriture par défaut</span></div>
+        <div class="r"><div class="seg"><div class="on">Chaleureux</div><div>Professionnel</div><div>Concis</div></div></div>
+      </div>
+      <div class="row">
+        <div class="l"><b>Instructions personnalisées</b><span>Contexte que Toumaï AI garde en tête à chaque réponse</span></div>
+        <div class="r"><input class="input" placeholder="Ex : tutoie-moi, exemples concrets…"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head">Voix de l'assistant</div>
+      <div class="voice on">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="play">▶</div>
+          <div class="meta"><b>Vivienne (FR Multilingue) <span class="badge">Recommandée</span></b><span>Chaleureuse et expressive</span></div>
+        </div>
+        <div class="pick"></div>
+      </div>
+      <div class="voice">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="play">▶</div>
+          <div class="meta"><b>Rémy (FR Multilingue)</b><span>Posé et rassurant</span></div>
+        </div>
+        <div class="pick"></div>
+      </div>
+      <div class="voice">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="play">▶</div>
+          <div class="meta"><b>سلمى (AR Égypte)</b><span>Arabe naturel</span></div>
+        </div>
+        <div class="pick"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head">Notifications</div>
+      <div class="row">
+        <div class="l"><b>Suggestions proactives</b><span>Idées selon le contexte de vos conversations</span></div>
+        <div class="r"><div class="switch"></div></div>
+      </div>
+      <div class="row">
+        <div class="l"><b>Auto-pilote WhatsApp</b><span>Alertes liées aux réponses automatiques</span></div>
+        <div class="r"><div class="switch off"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

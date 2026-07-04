@@ -15,6 +15,7 @@ const STORAGE_KEY = "toumai_theme";
 interface ThemeState {
   theme: Theme;
   toggle: () => void;
+  set: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeState | null>(null);
@@ -43,7 +44,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
+  const set = useCallback((next: Theme) => {
+    window.localStorage.setItem(STORAGE_KEY, next);
+    applyTheme(next);
+    setTheme(next);
+  }, []);
+
+  return <ThemeContext.Provider value={{ theme, toggle, set }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeState {

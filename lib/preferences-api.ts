@@ -25,6 +25,23 @@ export type PreferencesUpdate = Partial<
   font_size?: Preferences["font_size"];
 };
 
+export interface Voice {
+  id: string;
+  label: string;
+  lang: string;
+  gender: string;
+  quality: string;
+  recommended?: boolean;
+  desc: string;
+  free: boolean;
+  sample: string;
+}
+
+export function listVoices(lang?: string): Promise<{ voices: Voice[]; count: number }> {
+  const q = lang ? `?lang=${encodeURIComponent(lang)}` : "";
+  return http.get<{ voices: Voice[]; count: number }>(`/preferences/voices${q}`);
+}
+
 export function getPreferences(): Promise<Preferences> {
   return http.get<Preferences>("/preferences");
 }
