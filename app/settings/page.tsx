@@ -156,7 +156,7 @@ export default function SettingsPage() {
       <button
         onClick={() => setSection(s.id)}
         aria-current={active ? "page" : undefined}
-        className="relative flex w-full shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm font-medium transition hover:bg-[var(--hover)]"
+        className="relative flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm font-medium transition hover:bg-[var(--hover)] md:w-full"
         style={{
           background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : undefined,
           color: active ? "var(--primary)" : "var(--text-secondary)",
