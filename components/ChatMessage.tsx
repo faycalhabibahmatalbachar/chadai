@@ -3,7 +3,8 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { sendFeedback } from "@/lib/chat-api";
+import { confirmToolAction, sendFeedback } from "@/lib/chat-api";
+import type { ToolConfirmation } from "@/lib/chat-stream";
 import { CodeBlock } from "./CodeBlock";
 
 export interface Message {
@@ -14,6 +15,86 @@ export interface Message {
   /** Présent une fois le message persisté côté backend — nécessaire pour le feedback. */
   serverId?: string;
   imageUrls?: string[];
+  /** Action sensible en attente (WhatsApp, mail…) — affiche la carte
+   * Confirmer/Annuler qui déclenche la VRAIE exécution côté backend. */
+  toolConfirmation?: ToolConfirmation;
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  send_whatsapp: "Envoyer sur WhatsApp",
+  send_mail: "Envoyer l'e-mail",
+  create_event: "Créer l'événement",
+};
+
+/** Carte de confirmation d'action sensible — sans elle, le modèle répondait
+ * « message envoyé » sans jamais appeler le gateway (aucune vraie action). */
+function ToolConfirmCard({ confirmation }: { confirmation: ToolConfirmation }) {
+  const [state, setState] = useState<"pending" | "running" | "done" | "cancelled" | "error">(
+    "pending",
+  );
+  const [resultMsg, setResultMsg] = useState("");
+
+  async function confirm() {
+    setState("running");
+    try {
+      const res = await confirmToolAction(confirmation.tool, confirmation.args);
+      setState(res.ok ? "done" : "error");
+      setResultMsg(res.message || (res.ok ? "Action exécutée." : "Échec de l'action."));
+    } catch (err) {
+      setState("error");
+      setResultMsg(err instanceof Error ? err.message : "Échec de l'action.");
+    }
+  }
+
+  const label = TOOL_LABELS[confirmation.tool] ?? "Exécuter l'action";
+
+  return (
+    <div className="mt-3 max-w-md overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="px-4 pb-3 pt-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+          Action en attente de confirmation
+        </p>
+        <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+          {label} — cette action sera réellement exécutée.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 border-t border-[var(--border)] px-4 py-3">
+        {state === "pending" && (
+          <>
+            <button
+              onClick={confirm}
+              className="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+              style={{ background: "var(--primary)" }}
+            >
+              Confirmer
+            </button>
+            <button
+              onClick={() => setState("cancelled")}
+              className="rounded-lg border border-[var(--border)] px-3.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
+            >
+              Annuler
+            </button>
+          </>
+        )}
+        {state === "running" && (
+          <span className="text-xs text-[var(--text-secondary)]">Exécution en cours…</span>
+        )}
+        {state === "done" && (
+          <span className="text-xs font-medium" style={{ color: "var(--success)" }}>
+            ✓ {resultMsg}
+          </span>
+        )}
+        {state === "cancelled" && (
+          <span className="text-xs text-[var(--text-tertiary)]">Action annulée.</span>
+        )}
+        {state === "error" && (
+          <span className="text-xs" style={{ color: "var(--error)" }}>
+            {resultMsg}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function EditIcon() {
@@ -321,6 +402,9 @@ export function ChatMessage({
           <span className="streaming-cursor ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 bg-current align-middle" />
         )}
       </div>
+      {!message.streaming && message.toolConfirmation && (
+        <ToolConfirmCard confirmation={message.toolConfirmation} />
+      )}
       {!message.streaming && message.imageUrls && message.imageUrls.length > 0 && (
         <div className="mt-2 grid max-w-[420px] grid-cols-2 gap-2">
           {message.imageUrls.map((url, i) => (

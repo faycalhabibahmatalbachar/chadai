@@ -80,10 +80,26 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
+body {
+  /* Pas de rebond/tirage de la page entière quand on drague depuis le
+   * header ou qu'on dépasse le scroll — comme Gemini. */
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Empêche le glisser-déposer natif des liens/images/icônes de l'interface :
+ * attraper le header et tirer déplaçait un « fantôme » de toute la zone. */
+a,
+img,
+svg {
+  -webkit-user-drag: none;
+  user-select: inherit;
 }
 
 /* Titres éditoriaux de la page d'accueil (Fraunces via next/font). */

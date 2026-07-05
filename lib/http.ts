@@ -1,5 +1,5 @@
 import { API_BASE } from "./config";
-import { authHeaders } from "./api";
+import { authHeaders, tryRefreshSession } from "./api";
 import { handleUnauthorized } from "./session-guard";
 
 interface ApiEnvelope<T> {
@@ -9,7 +9,7 @@ interface ApiEnvelope<T> {
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  let res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -17,7 +17,22 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-  if (res.status === 401) handleUnauthorized();
+  if (res.status === 401) {
+    // Token expiré : on tente un refresh silencieux puis on rejoue la
+    // requête une fois. Seul un refresh impossible déconnecte réellement.
+    const renewed = await tryRefreshSession();
+    if (renewed) {
+      res = await fetch(`${API_BASE}${path}`, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+          ...(init?.headers ?? {}),
+        },
+      });
+    }
+    if (res.status === 401) handleUnauthorized();
+  }
   const body = (await res.json().catch(() => ({}))) as ApiEnvelope<T>;
   if (!res.ok || body.success === false) {
     throw new Error(body.message || `Erreur ${res.status}`);

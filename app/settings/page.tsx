@@ -23,63 +23,89 @@ type Section =
   | "connectors"
   | "support";
 
-const SECTIONS: {
+interface SectionDef {
   id: Section;
   label: string;
   title: string;
   sub: string;
   icon: React.ReactNode;
-}[] = [
+}
+
+/** Navigation groupée façon console Claude/Anthropic — chaque groupe porte
+ * un intitulé en petites capitales, les items un état actif teinté. */
+const GROUPS: { label: string; items: SectionDef[] }[] = [
   {
-    id: "general",
-    label: "Général",
-    title: "Général",
-    sub: "Votre profil, votre compte et votre utilisation.",
-    icon: <UserIcon />,
+    label: "Compte",
+    items: [
+      {
+        id: "general",
+        label: "Général",
+        title: "Général",
+        sub: "Votre profil, votre compte et votre utilisation.",
+        icon: <UserIcon />,
+      },
+      {
+        id: "personalization",
+        label: "Personnalisation",
+        title: "Personnalisation",
+        sub: "Adaptez le comportement de Toumaï AI à votre façon de travailler.",
+        icon: <SparkleIcon />,
+      },
+    ],
   },
   {
-    id: "personalization",
-    label: "Personnalisation",
-    title: "Personnalisation",
-    sub: "Adaptez le comportement de Toumaï AI à votre façon de travailler.",
-    icon: <SparkleIcon />,
+    label: "Expérience",
+    items: [
+      {
+        id: "appearance",
+        label: "Apparence",
+        title: "Apparence",
+        sub: "Thème et confort de lecture.",
+        icon: <PaletteIcon />,
+      },
+      {
+        id: "voice",
+        label: "Voix",
+        title: "Voix de l'assistant",
+        sub: "Choisissez la voix du mode vocal — écoutez chaque voix avant de décider.",
+        icon: <SoundIcon />,
+      },
+      {
+        id: "notifications",
+        label: "Notifications",
+        title: "Notifications",
+        sub: "Ce que Toumaï AI a le droit de vous signaler.",
+        icon: <BellIcon />,
+      },
+    ],
   },
   {
-    id: "appearance",
-    label: "Apparence",
-    title: "Apparence",
-    sub: "Thème et confort de lecture.",
-    icon: <PaletteIcon />,
+    label: "Écosystème",
+    items: [
+      {
+        id: "connectors",
+        label: "Connecteurs",
+        title: "Connecteurs & Intégrations",
+        sub: "Gérez les services tiers reliés à Toumaï AI — WhatsApp, Mail, Agenda…",
+        icon: <PlugIcon />,
+      },
+    ],
   },
   {
-    id: "voice",
-    label: "Voix",
-    title: "Voix de l'assistant",
-    sub: "Choisissez la voix du mode vocal — écoutez chaque voix avant de décider.",
-    icon: <SoundIcon />,
-  },
-  {
-    id: "notifications",
-    label: "Notifications",
-    title: "Notifications",
-    sub: "Ce que Toumaï AI a le droit de vous signaler.",
-    icon: <BellIcon />,
-  },
-  {
-    id: "connectors",
-    label: "Connecteurs",
-    title: "Connecteurs & Intégrations",
-    sub: "Gérez les services tiers reliés à Toumaï AI.",
-    icon: <PlugIcon />,
-  },
-  {
-    id: "support",
-    label: "Aide & Support",
-    title: "Aide & Support",
-    sub: "Guides rapides et contact direct.",
-    icon: <LifeBuoyIcon />,
+    label: "",
+    items: [
+      {
+        id: "support",
+        label: "Aide & Support",
+        title: "Aide & Support",
+        sub: "Guides rapides et contact direct.",
+        icon: <LifeBuoyIcon />,
+      },
+    ],
   },
 ];
+
+const ALL_SECTIONS: SectionDef[] = GROUPS.flatMap((g) => g.items);
 
 // Compatibilité avec les anciens liens ?tab=… (menu Outils du chat, sidebar).
 const LEGACY_TABS: Record<string, Section> = {
@@ -113,36 +139,39 @@ export default function SettingsPage() {
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("tab") ?? "";
     const target =
-      LEGACY_TABS[requested] ?? (SECTIONS.some((s) => s.id === requested) ? (requested as Section) : null);
+      LEGACY_TABS[requested] ??
+      (ALL_SECTIONS.some((s) => s.id === requested) ? (requested as Section) : null);
     if (target) setSection(target);
   }, []);
 
   const isGuest = !session || session.is_guest;
-  const current = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0];
+  const current = ALL_SECTIONS.find((s) => s.id === section) ?? ALL_SECTIONS[0];
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)] px-4 py-3">
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-30 flex select-none items-center justify-between bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
           <Link
             href="/chat"
+            draggable={false}
             aria-label="Retour au chat"
-            className="rounded-lg p-2 transition hover:bg-[var(--hover)]"
+            className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
           >
             <BackIcon />
           </Link>
-          <h1 className="text-sm font-semibold">Paramètres</h1>
+          <h1 className="landing-serif text-lg tracking-tight">Paramètres</h1>
         </div>
         <ThemeToggle />
       </header>
 
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-8 md:flex-row md:gap-12">
-        {/* Navigation — sticky sous le header : seule la colonne de contenu
-            défile, la navigation reste en place (comme les consoles pro). */}
-        <nav className="shrink-0 md:sticky md:top-[76px] md:h-fit md:w-60 md:self-start">
-          <div className="mb-5 flex items-center gap-3 px-2">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-6 md:flex-row md:gap-14 md:py-10">
+        {/* Navigation — sticky sous le header, groupée par thème. */}
+        <nav className="shrink-0 md:sticky md:top-[72px] md:h-fit md:w-60 md:self-start">
+          {/* Identité — informative, pas cliquable : l'action se fait dans
+              la section Général. */}
+          <div className="mb-6 flex items-center gap-3 rounded-2xl bg-[var(--surface)] px-3.5 py-3">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full"
               style={{ background: "linear-gradient(135deg, var(--primary), var(--thinking))" }}
             >
               {profile?.avatar_url ? (
@@ -162,34 +191,50 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex gap-1 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
-            {SECTIONS.map((s, i) => (
-              <span key={s.id} className="contents">
-                {i === SECTIONS.length - 1 && (
-                  <span className="my-2 hidden h-px bg-[var(--border)] md:block" aria-hidden="true" />
+          {/* Mobile : pills horizontales. Desktop : colonnes groupées. */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 md:flex-col md:gap-0 md:overflow-visible md:pb-0">
+            {GROUPS.map((group, gi) => (
+              <div key={group.label || `g${gi}`} className="contents md:block">
+                {group.label ? (
+                  <p className="hidden px-3 pb-1 pt-4 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[var(--text-tertiary)] first:pt-0 md:block">
+                    {group.label}
+                  </p>
+                ) : (
+                  <div className="my-3 hidden h-px bg-[var(--border)] md:block" aria-hidden="true" />
                 )}
-                <button
-                  onClick={() => setSection(s.id)}
-                  className="flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition hover:bg-[var(--hover)]"
-                  style={{
-                    background: section === s.id ? "var(--card)" : undefined,
-                    color: section === s.id ? "var(--text-primary)" : "var(--text-secondary)",
-                  }}
-                >
-                  <span className="opacity-75" aria-hidden="true">
-                    {s.icon}
-                  </span>
-                  {s.label}
-                </button>
-              </span>
+                {group.items.map((s) => {
+                  const active = section === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setSection(s.id)}
+                      aria-current={active ? "page" : undefined}
+                      className="flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-sm font-medium transition hover:bg-[var(--hover)] md:w-full"
+                      style={{
+                        background: active
+                          ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                          : undefined,
+                        color: active ? "var(--primary)" : "var(--text-secondary)",
+                      }}
+                    >
+                      <span className={active ? "" : "opacity-70"} aria-hidden="true">
+                        {s.icon}
+                      </span>
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </div>
         </nav>
 
-        {/* Contenu */}
-        <div className="min-w-0 flex-1 pb-12">
-          <h2 className="text-xl font-semibold tracking-tight">{current.title}</h2>
-          <p className="mb-6 mt-1 text-sm text-[var(--text-tertiary)]">{current.sub}</p>
+        {/* Contenu — titre éditorial serif, transition douce entre sections. */}
+        <div key={section} className="min-w-0 flex-1 animate-fade-in pb-16">
+          <h2 className="landing-serif text-[26px] tracking-tight">{current.title}</h2>
+          <p className="mb-8 mt-1.5 max-w-lg text-sm leading-relaxed text-[var(--text-tertiary)]">
+            {current.sub}
+          </p>
 
           {!session ? (
             <div className="h-64 w-full animate-pulse rounded-2xl bg-[var(--card)]" aria-hidden="true" />

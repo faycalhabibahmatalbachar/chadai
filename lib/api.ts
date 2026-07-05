@@ -105,3 +105,34 @@ export function authHeaders(): HeadersInit {
   if (!session) return {};
   return { Authorization: `Bearer ${session.access_token}` };
 }
+
+// ── Rafraîchissement du JWT ──────────────────────────────────────────────
+// Le token d'accès expire (expires_in) mais le backend expose /auth/refresh.
+// Sans ce flux, tout 401 effaçait la session et l'utilisateur connecté
+// retombait en "Session invité" à la première navigation après expiration.
+let refreshInFlight: Promise<TokenPayload | null> | null = null;
+
+/** Tente d'échanger le refresh token contre une nouvelle session.
+ * Mutualisé : plusieurs requêtes 401 simultanées ne déclenchent qu'un seul
+ * appel réseau. Renvoie la nouvelle session, ou null si le refresh échoue
+ * (token révoqué/expiré) — auquel cas l'appelant peut déconnecter. */
+export function tryRefreshSession(): Promise<TokenPayload | null> {
+  if (refreshInFlight) return refreshInFlight;
+  const current = loadSession();
+  if (!current?.refresh_token) return Promise.resolve(null);
+
+  refreshInFlight = request<TokenPayload>("/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refresh_token: current.refresh_token }),
+  })
+    .then((res) => {
+      if (!res.data) return null;
+      saveSession(res.data);
+      return res.data;
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}

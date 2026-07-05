@@ -335,11 +335,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
         </nav>
 
         {collapsed && <div className="hidden flex-1 md:block" aria-hidden="true" />}
-        <Link
-          href="/settings"
-          onClick={onClose}
-          title="Paramètres"
-          className={`flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-3 transition hover:bg-[var(--hover)] ${
+        {/* Pied de sidebar — la carte profil est purement informative ; seule
+            l'icône engrenage (cible de clic dédiée, avec son propre halo de
+            survol) ouvre les paramètres. Pas de trait séparateur au-dessus. */}
+        <div
+          className={`flex items-center gap-2.5 px-3 py-3 ${
             collapsed ? "md:justify-center md:px-0" : ""
           }`}
         >
@@ -358,16 +358,38 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
             )}
           </div>
           <span
-            className={`truncate text-sm font-medium text-[var(--text-secondary)] ${
+            className={`min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-secondary)] ${
               collapsed ? "md:hidden" : ""
             }`}
           >
             {!session ? "Connexion…" : displayName || "Session invité"}
           </span>
-          <span className={collapsed ? "md:hidden" : ""}>
+          <Link
+            href="/settings"
+            onClick={onClose}
+            title="Paramètres"
+            aria-label="Ouvrir les paramètres"
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] ${
+              collapsed ? "md:hidden" : ""
+            }`}
+          >
             <SettingsIcon />
-          </span>
-        </Link>
+          </Link>
+        </div>
+        {/* Mode replié : l'engrenage reste accessible seul, centré. */}
+        {collapsed && (
+          <div className="hidden justify-center pb-3 md:flex">
+            <Link
+              href="/settings"
+              onClick={onClose}
+              title="Paramètres"
+              aria-label="Ouvrir les paramètres"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-tertiary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            >
+              <SettingsIcon />
+            </Link>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -434,13 +456,13 @@ function PlugIcon() {
 function SettingsIcon() {
   return (
     <svg
-      width="15"
-      height="15"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      className="ml-auto shrink-0 text-[var(--text-tertiary)]"
+      className="shrink-0"
     >
       <circle cx="12" cy="12" r="3" />
       <path

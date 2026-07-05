@@ -95,6 +95,24 @@ export async function sendFeedback(messageId: string, rating: "up" | "down"): Pr
   if (!res.ok) throw new Error(`Erreur ${res.status}`);
 }
 
+/** Exécute réellement une action sensible (WhatsApp, mail…) après que
+ * l'utilisateur a cliqué « Confirmer » sur la carte de confirmation.
+ * Le backend renvoie toujours HTTP 200 — succès/échec est dans le body. */
+export async function confirmToolAction(
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/chat/tool/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ tool, args }),
+  });
+  if (res.status === 401) handleUnauthorized();
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.message || `Erreur ${res.status}`);
+  return { ok: body.success !== false, message: body.message || "" };
+}
+
 /** Regroupe les sessions par période, comme ChatGPT/Claude.ai — les
  * conversations épinglées forment leur propre groupe en tête de liste. */
 export function groupSessionsByDate(sessions: ChatSession[]): { label: string; items: ChatSession[] }[] {

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { streamChat } from "@/lib/chat-stream";
 import { getHistory, deleteMessageAndAfter } from "@/lib/chat-api";
 import { getProfile } from "@/lib/user-api";
+import { getPreferences } from "@/lib/preferences-api";
 import { uploadDocument, type UploadedDocument } from "@/lib/documents-api";
 import { ChatMessage, type Message } from "@/components/ChatMessage";
 import { ModelSelector } from "@/components/ModelSelector";
@@ -66,6 +67,10 @@ export default function ChatPage() {
   const [dictating, setDictating] = useState(false);
   const [voiceModeOpen, setVoiceModeOpen] = useState(false);
   const [attachedDoc, setAttachedDoc] = useState<UploadedDocument | null>(null);
+  // Langue de réponse définie dans les préférences ("fr", "en", "ar"… ou
+  // "auto") — envoyée à chaque tour pour que l'IA réponde TOUJOURS dans la
+  // langue choisie, pas dans celle détectée du message.
+  const preferredLangRef = useRef<string>("auto");
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +99,16 @@ export default function ChatPage() {
       .then((p) => {
         const name = p.full_name?.trim().split(/\s+/)[0];
         if (name) setFirstName(name);
+      })
+      .catch(() => {});
+  }, [session]);
+
+  // Charge la langue préférée une fois la session prête.
+  useEffect(() => {
+    if (!session) return;
+    getPreferences()
+      .then((p) => {
+        if (p.ai_language) preferredLangRef.current = p.ai_language;
       })
       .catch(() => {});
   }, [session]);
@@ -247,7 +262,14 @@ export default function ChatPage() {
       const documentId = attachedDoc?.doc_id;
       setAttachedDoc(null);
       await streamChat(
-        { message: text, sessionId: activeSessionId, modelPreference: model, webSearch, documentId },
+        {
+          message: text,
+          sessionId: activeSessionId,
+          modelPreference: model,
+          language: preferredLangRef.current,
+          webSearch,
+          documentId,
+        },
         (evt) => {
           if (evt.chunk) {
             acc += evt.chunk;
@@ -259,8 +281,17 @@ export default function ChatPage() {
           if (evt.session_id && evt.session_id !== activeSessionId) {
             setActiveSessionId(evt.session_id);
           }
+          // La confirmation peut arriver dans un événement metadata
+          // intermédiaire OU dans l'événement final — on capte les deux.
+          if (evt.metadata?.tool_confirmation && !evt.done) {
+            const tc = evt.metadata.tool_confirmation;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, toolConfirmation: tc } : m)),
+            );
+          }
           if (evt.done) {
             const imageUrls = evt.metadata?.image_urls;
+            const toolConfirmation = evt.metadata?.tool_confirmation;
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id === assistantId) {
@@ -269,6 +300,9 @@ export default function ChatPage() {
                     streaming: false,
                     serverId: evt.message_id,
                     imageUrls: imageUrls?.length ? imageUrls : m.imageUrls,
+                    // Action sensible (WhatsApp/mail) : la carte
+                    // Confirmer/Annuler déclenche la vraie exécution.
+                    toolConfirmation: toolConfirmation ?? m.toolConfirmation,
                   };
                 }
                 if (userMsgId && m.id === userMsgId) return { ...m, serverId: evt.user_message_id };
@@ -410,7 +444,7 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Barre supérieure */}
-        <header className="flex items-center justify-between border-b border-[var(--border)] px-3 py-3 md:px-4">
+        <header className="flex select-none items-center justify-between px-3 py-3 md:px-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -419,7 +453,7 @@ export default function ChatPage() {
             >
               <MenuIcon />
             </button>
-            <Link href="/" className="text-sm font-semibold">
+            <Link href="/" draggable={false} className="text-sm font-semibold">
               Toumaï AI
             </Link>
           </div>
@@ -507,7 +541,7 @@ export default function ChatPage() {
         )}
 
         {/* Saisie */}
-        <footer className="border-t border-[var(--border)] px-4 py-4">
+        <footer className="px-4 py-4">
           <div className="mx-auto flex max-w-3xl flex-col gap-2">
             {webSearch && (
               <button
@@ -543,6 +577,17 @@ export default function ChatPage() {
               accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.webp,.gif"
               onChange={onFilePicked}
             />
+            {dictating && (
+              <div
+                className="flex items-center justify-center gap-3 rounded-2xl px-4 py-3"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                <Waveform active bars={40} height={30} color="var(--primary)" />
+                <span className="shrink-0 text-sm font-medium" style={{ color: "var(--primary)" }}>
+                  Je vous écoute…
+                </span>
+              </div>
+            )}
             <div className="flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 focus-within:border-[var(--primary)]/60">
               <div className="relative">
                 <button
@@ -603,7 +648,7 @@ export default function ChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Écrivez à Toumaï AI…"
+                placeholder={dictating ? "Je vous écoute…" : "Écrivez à Toumaï AI…"}
                 rows={1}
                 disabled={!session}
                 className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2.5 text-[15px] outline-none placeholder:text-[var(--text-tertiary)]"
@@ -616,7 +661,7 @@ export default function ChatPage() {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
                 style={{ color: dictating ? "var(--primary)" : "var(--text-tertiary)" }}
               >
-                {dictating ? <Waveform active height={18} /> : <MicIcon />}
+                {dictating ? <StopIcon /> : <MicIcon />}
               </button>
               <button
                 onClick={() => setVoiceModeOpen(true)}

@@ -2,18 +2,20 @@
 
 import { type ReactNode } from "react";
 
-/** Panneau de réglages — conteneur hairline des rangées, style console
- * d'entreprise (Google Account / paramètres Claude). */
+/** Panneau de réglages — style Claude : intitulé serif hors du cadre, carte
+ * plate à liseré fin, rangées séparées par des hairlines. */
 export function Panel({ title, children }: { title?: string; children: ReactNode }) {
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+    <section className="mb-8">
       {title && (
-        <p className="px-5 pb-1 pt-4 text-[11.5px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+        <h3 className="landing-serif mb-2.5 px-0.5 text-[17px] tracking-tight text-[var(--text-primary)]">
           {title}
-        </p>
+        </h3>
       )}
-      {children}
-    </div>
+      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -39,7 +41,7 @@ export function Row({
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}</p>
         {description && (
-          <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">{description}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-tertiary)]">{description}</p>
         )}
       </div>
       <div className={stacked ? "mt-3" : "flex shrink-0 items-center gap-2"}>{children}</div>
@@ -60,24 +62,29 @@ export function Segmented<T extends string>({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex overflow-hidden rounded-lg border border-[var(--border)]">
-      {options.map((o, i) => (
-        <button
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          disabled={disabled}
-          className={`px-3.5 py-1.5 text-xs font-medium transition disabled:opacity-40 ${
-            i > 0 ? "border-l border-[var(--border)]" : ""
-          }`}
-          style={
-            value === o.value
-              ? { background: "var(--card)", color: "var(--text-primary)" }
-              : { color: "var(--text-secondary)" }
-          }
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="flex gap-0.5 rounded-full border border-[var(--border)] bg-[var(--background)] p-0.5">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            disabled={disabled}
+            aria-pressed={active}
+            className="rounded-full px-3.5 py-1.5 text-xs font-medium transition disabled:opacity-40"
+            style={
+              active
+                ? {
+                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "var(--primary)",
+                  }
+                : { color: "var(--text-secondary)" }
+            }
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,10 +1,21 @@
 import { API_BASE } from "./config";
-import { authHeaders } from "./api";
+import { authHeaders, tryRefreshSession } from "./api";
 import { handleUnauthorized } from "./session-guard";
+
+/** Action sensible (WhatsApp, mail…) en attente de confirmation explicite —
+ * émise par le backend dans les métadonnées du flux. Le frontend affiche une
+ * carte Confirmer/Annuler puis appelle POST /chat/tool/confirm. */
+export interface ToolConfirmation {
+  type?: string;
+  tool: string;
+  args: Record<string, unknown>;
+  text?: string;
+}
 
 export interface StreamMetadata {
   image_urls?: string[];
   sources?: unknown[];
+  tool_confirmation?: ToolConfirmation;
   [key: string]: unknown;
 }
 
@@ -22,6 +33,9 @@ export interface ChatStreamParams {
   message: string;
   sessionId: string | null;
   modelPreference: string;
+  /** Langue de réponse imposée par les préférences utilisateur ("fr", "en",
+   * "ar"…) — "auto" laisse le backend détecter depuis le message. */
+  language?: string;
   webSearch?: boolean;
   documentId?: string;
 }
@@ -36,28 +50,37 @@ export async function streamChat(
   onEvent: (evt: StreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/chat/stream`, {
-    method: "POST",
-    signal,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-      ...authHeaders(),
-    },
-    body: JSON.stringify({
-      message: params.message,
-      session_id: params.sessionId,
-      language: "auto",
-      model_preference: params.modelPreference,
-      web_search: Boolean(params.webSearch),
-      document_id: params.documentId || undefined,
-    }),
-  });
+  const doFetch = () =>
+    fetch(`${API_BASE}/chat/stream`, {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        message: params.message,
+        session_id: params.sessionId,
+        language: params.language || "auto",
+        model_preference: params.modelPreference,
+        web_search: Boolean(params.webSearch),
+        document_id: params.documentId || undefined,
+      }),
+    });
 
+  let res = await doFetch();
+
+  if (res.status === 401) {
+    // Token expiré : refresh silencieux puis on rejoue la requête — évite de
+    // dégrader un compte connecté en "Session invité" au premier 401.
+    const renewed = await tryRefreshSession();
+    if (renewed) res = await doFetch();
+    if (res.status === 401) handleUnauthorized();
+  }
   if (res.status === 429) {
     throw new Error("Trop de messages envoyés d'un coup. Patientez quelques secondes avant de réessayer.");
   }
-  if (res.status === 401) handleUnauthorized();
   if (!res.ok || !res.body) {
     throw new Error(`Le serveur a répondu ${res.status}`);
   }
