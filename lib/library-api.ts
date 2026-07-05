@@ -28,6 +28,18 @@ export function getFiles(): Promise<LibraryFiles> {
   return http.get<LibraryFiles>("/user/files");
 }
 
+export interface ChatImage {
+  url: string;
+  session_id: string;
+  session_title: string;
+  created_at?: string | null;
+}
+
+/** Images générées dans les conversations — grille façon Gemini. */
+export function getChatImages(): Promise<{ images: ChatImage[] }> {
+  return http.get<{ images: ChatImage[] }>("/user/images");
+}
+
 export function deleteFile(id: string): Promise<void> {
   return http.delete(`/user/files/${id}`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -14,6 +14,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Arrivée depuis une session expirée (voir session-guard).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("expired")) {
+      setError("Votre session a expiré — reconnectez-vous pour continuer.");
+    }
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

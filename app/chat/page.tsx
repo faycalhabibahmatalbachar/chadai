@@ -16,6 +16,7 @@ import { Logo } from "@/components/Logo";
 import { Waveform } from "@/components/Waveform";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { ShareDialog } from "@/components/ShareDialog";
+import { BrowserAgentOverlay, detectBrowserGoal } from "@/components/BrowserAgentOverlay";
 
 /** Synchronise l'URL avec la conversation active (/chat?c=<id>) — chaque
  * conversation a son adresse, ouvrable/partageable comme sur Gemini. */
@@ -52,6 +53,54 @@ function nextId() {
   return `m${Date.now()}${idCounter}`;
 }
 
+/** Pool de suggestions — 4 tirées au hasard à chaque visite, libellés
+ * complets (jamais tronqués). */
+const SUGGESTION_POOL = [
+  "Explique-moi un concept simplement",
+  "Génère une image créative",
+  "Écris une fonction Python",
+  "Traduis ce texte en arabe",
+  "Résume-moi mes messages WhatsApp",
+  "Rédige un e-mail professionnel",
+  "Aide-moi à préparer un CV",
+  "Donne-moi la météo à N'Djamena",
+  "Propose des idées de business au Tchad",
+  "Corrige ce texte en français",
+];
+
+function pickSuggestions(): string[] {
+  const pool = [...SUGGESTION_POOL];
+  const out: string[] = [];
+  while (out.length < 4 && pool.length) {
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return out;
+}
+
+/** Bref signal sonore (deux notes montantes) au démarrage de la dictée —
+ * indique à l'utilisateur qu'il peut parler, comme les assistants vocaux. */
+function playDictationChime() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.06;
+    gain.connect(ctx.destination);
+    [660, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.1);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 500);
+  } catch {
+    // Pas d'audio disponible — la dictée fonctionne quand même.
+  }
+}
+
 function timeGreeting(): string {
   const h = new Date().getHours();
   if (h < 5) return "Bonne nuit";
@@ -76,6 +125,8 @@ export default function ChatPage() {
   const [dictating, setDictating] = useState(false);
   const [voiceModeOpen, setVoiceModeOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  // Tâche de navigation web détectée → fenêtre dédiée de l'Agent Navigateur.
+  const [browserGoal, setBrowserGoal] = useState<string | null>(null);
   const urlConvAttempted = useRef(false);
   const [attachedDoc, setAttachedDoc] = useState<UploadedDocument | null>(null);
   // Langue de réponse définie dans les préférences ("fr", "en", "ar"… ou
@@ -96,8 +147,11 @@ export default function ChatPage() {
 
   // Calculé après montage (pas au rendu serveur statique) pour éviter un
   // écart d'hydratation lié au fuseau horaire du visiteur.
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   useEffect(() => {
     setGreeting(timeGreeting());
+    // Après montage (pas au rendu statique) — Math.random casserait l'hydratation.
+    setSuggestions(pickSuggestions());
   }, []);
 
   // Prénom affiché dans l'accueil pour les comptes réels (comme
@@ -207,6 +261,13 @@ export default function ChatPage() {
   async function send(overrideText?: string) {
     const text = (overrideText ?? input).trim();
     if (!text || sending || !session) return;
+    // Demande de navigation web → l'Agent Navigateur prend le relais dans sa
+    // fenêtre dédiée (l'utilisateur n'a plus à le lancer manuellement).
+    if (detectBrowserGoal(text)) {
+      setInput("");
+      setBrowserGoal(text);
+      return;
+    }
     setInput("");
     setError(null);
     stickToBottomRef.current = true;
@@ -405,7 +466,10 @@ export default function ChatPage() {
     recognition.lang = "fr-FR";
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.onstart = () => setDictating(true);
+    recognition.onstart = () => {
+      setDictating(true);
+      playDictationChime();
+    };
     recognition.onresult = (e) => {
       let transcript = "";
       for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
@@ -516,20 +580,15 @@ export default function ChatPage() {
                 <p className="mt-3 text-sm text-[var(--text-tertiary)]">
                   Comment puis-je vous aider ?
                 </p>
-                <div className="mt-8 flex max-w-lg flex-wrap justify-center gap-2.5">
-                  {[
-                    "Explique-moi un concept simplement",
-                    "Génère une image de…",
-                    "Écris une fonction Python qui…",
-                    "Traduis ce texte en arabe :",
-                  ].map((s) => (
+                <div className="mt-8 flex max-w-xl flex-wrap justify-center gap-2.5">
+                  {suggestions.map((s) => (
                     <button
                       key={s}
                       onClick={() => {
                         setInput(s);
                         textareaRef.current?.focus();
                       }}
-                      className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[13px] text-[var(--text-secondary)] transition hover:border-[var(--primary)] hover:text-[var(--text-primary)]"
+                      className="whitespace-nowrap rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-[13px] text-[var(--text-secondary)] transition hover:border-[var(--primary)] hover:text-[var(--text-primary)]"
                     >
                       {s}
                     </button>
@@ -658,13 +717,6 @@ export default function ChatPage() {
                       </button>
                       <div className="my-1 h-px bg-[var(--border)]" />
                       <Link
-                        href="/agent"
-                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
-                      >
-                        <AgentIcon />
-                        Agent Navigateur
-                      </Link>
-                      <Link
                         href="/settings?tab=connectors"
                         className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
                       >
@@ -739,6 +791,20 @@ export default function ChatPage() {
       {shareOpen && activeSessionId && (
         <ShareDialog sessionId={activeSessionId} onClose={() => setShareOpen(false)} />
       )}
+      {browserGoal && (
+        <BrowserAgentOverlay
+          goal={browserGoal}
+          onClose={(answer) => {
+            setBrowserGoal(null);
+            if (answer) {
+              setMessages((prev) => [
+                ...prev,
+                { id: nextId(), role: "assistant", content: `🌐 **Agent Navigateur**\n\n${answer}` },
+              ]);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -812,15 +878,6 @@ function FileIcon() {
         strokeLinejoin="round"
       />
       <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function AgentIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3" y="4" width="18" height="14" rx="2" />
-      <path d="M3 9h18M8 21h8M12 18v3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

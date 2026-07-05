@@ -16,6 +16,7 @@ import {
   type WhatsAppState,
 } from "@/lib/connectors-api";
 import { ConnectorCard, type ConnectorStatus } from "./ConnectorCard";
+import { WhatsAppPermissionsPanel } from "./WhatsAppPermissionsPanel";
 
 interface ActivityEntry {
   id: string;
@@ -337,6 +338,7 @@ function MailConnector({ onLog }: { onLog: OnLog }) {
 
 function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
   const [state, setState] = useState<WhatsAppState | null>(null);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date | undefined>(undefined);
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
@@ -448,13 +450,22 @@ function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
   return (
     <ConnectorCard icon="💬" name="WhatsApp" description={description} status={cStatus} lastChecked={checkedAt}>
       {state?.status === "connected" ? (
-        <button
-          onClick={disconnect}
-          disabled={busy}
-          className="w-fit rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium transition hover:border-[var(--error)] hover:text-[var(--error)] disabled:opacity-40"
-        >
-          Déconnecter
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setPermissionsOpen(true)}
+            className="w-fit rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
+            style={{ background: "var(--primary)" }}
+          >
+            Gérer les permissions
+          </button>
+          <button
+            onClick={disconnect}
+            disabled={busy}
+            className="w-fit rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium transition hover:border-[var(--error)] hover:text-[var(--error)] disabled:opacity-40"
+          >
+            Déconnecter
+          </button>
+        </div>
       ) : state?.pairingCode ? (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs text-[var(--text-secondary)]">
@@ -494,6 +505,7 @@ function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
         </div>
       )}
       {error && <p className="mt-1.5 text-xs text-[var(--error)]">{error}</p>}
+      {permissionsOpen && <WhatsAppPermissionsPanel onClose={() => setPermissionsOpen(false)} />}
     </ConnectorCard>
   );
 }

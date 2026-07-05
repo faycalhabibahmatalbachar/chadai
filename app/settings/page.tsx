@@ -185,15 +185,6 @@ export default function SettingsPage() {
         <Link href="/chat" draggable={false} className="flex select-none items-center gap-2.5 px-1">
           <Logo size={26} />
           <span className="text-[15px] font-semibold tracking-tight">Toumaï AI</span>
-          <span
-            className="rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider"
-            style={{
-              background: "color-mix(in srgb, var(--accent) 18%, transparent)",
-              color: "var(--accent)",
-            }}
-          >
-            Beta
-          </span>
         </Link>
 
         {/* Carte identité — mène à la section Général. */}
@@ -236,35 +227,6 @@ export default function SettingsPage() {
           <NavItem s={SUPPORT_SECTION} />
         </nav>
 
-        {/* Offre Plus — bas du rail, comme les consoles produit. */}
-        <div
-          className="mt-4 rounded-2xl border p-4"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 30%, var(--border))",
-            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-white"
-              style={{ background: "var(--primary)" }}
-              aria-hidden="true"
-            >
-              <BoltIcon />
-            </span>
-            <p className="text-sm font-semibold">Toumaï AI Plus</p>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
-            Plus de puissance, plus d'outils et plus de liberté.
-          </p>
-          <Link
-            href="/#offres"
-            className="mt-3 inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-            style={{ background: "var(--primary)" }}
-          >
-            Découvrir les offres
-          </Link>
-        </div>
       </aside>
 
       {/* ── Contenu ── */}
@@ -361,14 +323,6 @@ function ChevronIcon() {
       className="shrink-0 text-[var(--text-tertiary)]"
     >
       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function BoltIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
     </svg>
   );
 }

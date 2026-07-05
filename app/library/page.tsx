@@ -6,8 +6,10 @@ import { useAuth } from "@/lib/auth-context";
 import {
   deleteFile,
   fileUrl,
+  getChatImages,
   getFiles,
   isImage,
+  type ChatImage,
   type DocumentFile,
   type GeneratedFile,
 } from "@/lib/library-api";
@@ -39,6 +41,8 @@ export default function LibraryPage() {
   const { session, loading, loginAsGuest } = useAuth();
   const [generated, setGenerated] = useState<GeneratedFile[]>([]);
   const [documents, setDocuments] = useState<DocumentFile[]>([]);
+  const [chatImages, setChatImages] = useState<ChatImage[]>([]);
+  const [preview, setPreview] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -52,10 +56,14 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (!session) return;
-    getFiles()
-      .then((data) => {
+    Promise.all([
+      getFiles(),
+      getChatImages().catch(() => ({ images: [] as ChatImage[] })),
+    ])
+      .then(([data, imgs]) => {
         setGenerated(data.generated);
         setDocuments(data.documents);
+        setChatImages(imgs.images);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Chargement impossible"))
       .finally(() => setFetching(false));
@@ -172,11 +180,41 @@ export default function LibraryPage() {
 
             <section>
               <h2 className="mb-3 text-lg font-semibold">Contenus multimédias</h2>
-              {images.length === 0 ? (
+              {chatImages.length === 0 && images.length === 0 && (
                 <p className="text-sm text-[var(--text-tertiary)]">
                   Les images générées par Toumaï AI apparaîtront ici.
                 </p>
-              ) : (
+              )}
+              {chatImages.length > 0 && (
+                <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {chatImages.map((img, i) => (
+                    <div
+                      key={img.url + i}
+                      className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-2xl bg-[var(--card)]"
+                      onClick={() => setPreview(img.url)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Agrandir l'image"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.session_title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+                      />
+                      <Link
+                        href={`/chat?c=${encodeURIComponent(img.session_id)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100"
+                      >
+                        {img.session_title}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {images.length === 0 ? null : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {images.map((f) => (
                     <a
@@ -211,6 +249,16 @@ export default function LibraryPage() {
           </>
         )}
       </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setPreview(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Aperçu" className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
     </div>
   );
 }

@@ -163,17 +163,35 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
           open ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "md:w-[68px]" : "md:w-72"}`}
       >
-        {/* Bouton replier/déplier — le logo Toumaï AI fait office de toggle,
-            comme l'étincelle de Gemini (desktop). */}
+        {/* En-tête du menu — comme Gemini : ouvert, on montre le logo + le nom
+            avec une icône « fermer le panneau » au bout de la rangée ; replié,
+            le logo seul sert de bouton d'ouverture. */}
         <div className={`hidden px-3 pt-3 md:block ${collapsed ? "md:px-3.5" : ""}`}>
-          <button
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? "Afficher le menu" : "Masquer le menu"}
-            title={collapsed ? "Afficher le menu" : "Masquer le menu"}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
-          >
-            <Logo size={24} />
-          </button>
+          {collapsed ? (
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Afficher le menu"
+              title="Afficher le menu"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[var(--hover)]"
+            >
+              <Logo size={24} />
+            </button>
+          ) : (
+            <div className="flex select-none items-center gap-2.5 px-1">
+              <Logo size={24} />
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
+                Toumaï AI
+              </span>
+              <button
+                onClick={toggleCollapsed}
+                aria-label="Fermer la barre latérale"
+                title="Fermer la barre latérale"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-tertiary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+              >
+                <PanelCloseIcon />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={`px-3 pt-3 pb-1 md:pt-2 ${collapsed ? "md:px-3.5" : ""}`}>
@@ -218,16 +236,17 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher dans les conversations"
+              placeholder="Rechercher"
               className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--text-secondary)]"
             />
           </label>
         </div>
 
         <div className={`px-3 pb-1 ${collapsed ? "md:px-3.5" : ""}`}>
+          {/* L'Agent Navigateur n'a plus d'entrée : l'IA l'invoque seule quand
+              l'utilisateur demande une navigation web. */}
           {[
             { href: "/library", label: "Bibliothèque", icon: <LibraryIcon /> },
-            { href: "/agent", label: "Agent Navigateur", icon: <AgentIcon /> },
             { href: "/settings?tab=connectors", label: "Connecteurs", icon: <PlugIcon /> },
           ].map((item) => (
             <Link
@@ -409,10 +428,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   );
 }
 
-function MenuIcon() {
+function PanelCloseIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M9.5 4v16M15.5 10l-2.5 2 2.5 2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -442,15 +462,6 @@ function LibraryIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function AgentIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="18" height="14" rx="2" />
-      <path d="M3 9h18M8 21h8M12 18v3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

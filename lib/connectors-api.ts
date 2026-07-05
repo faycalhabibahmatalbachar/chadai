@@ -66,3 +66,32 @@ export function refreshWhatsAppCode(): Promise<{ pairingCode: string; codeExpire
 export function disconnectWhatsApp(): Promise<{ status: "disconnected" }> {
   return http.post("/whatsapp/logout");
 }
+
+/** Permissions de l'IA sur le compte WhatsApp — appliquées côté backend
+ * (registre d'outils) : une capacité désactivée est refusée avant exécution. */
+export interface WaSettings {
+  send_text: boolean;
+  send_voice: boolean;
+  send_image: boolean;
+  send_video: boolean;
+  send_document: boolean;
+  send_file: boolean;
+  post_status: boolean;
+  read_messages: boolean;
+  summaries: boolean;
+  search: boolean;
+  analyze: boolean;
+  manage_messages: boolean;
+  advanced: boolean;
+  sync_contacts: boolean;
+  save_contacts: boolean;
+  status_audience: "all" | "contacts";
+}
+
+export function getWaSettings(): Promise<WaSettings> {
+  return http.get("/whatsapp/settings");
+}
+
+export function updateWaSettings(patch: Partial<WaSettings>): Promise<WaSettings> {
+  return http.put("/whatsapp/settings", patch);
+}
