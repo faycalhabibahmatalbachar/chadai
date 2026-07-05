@@ -35,7 +35,7 @@ export function Row({
   return (
     <div
       className={`border-t border-[var(--border)] px-5 py-4 first:border-t-0 ${
-        stacked ? "" : "flex items-center justify-between gap-6"
+        stacked ? "" : "flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
       }`}
     >
       <div className="min-w-0">

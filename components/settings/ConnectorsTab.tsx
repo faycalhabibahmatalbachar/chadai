@@ -37,13 +37,9 @@ export function ConnectorsTab() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-lg font-medium">Connecteurs & Intégrations</p>
-          <p className="text-sm text-[var(--text-tertiary)]">
-            Gérez les services tiers reliés à Toumaï AI.
-          </p>
-        </div>
+      {/* Le titre de section est déjà rendu par la page Paramètres — on ne
+          garde ici que la recherche, alignée à droite. */}
+      <div className="mb-5 flex items-center justify-end gap-3">
         <div className="relative w-48 shrink-0 sm:w-64">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
             <SearchIcon />

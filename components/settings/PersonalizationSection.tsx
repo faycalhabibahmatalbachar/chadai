@@ -11,6 +11,13 @@ const TONES: { value: Preferences["ai_tone"]; label: string }[] = [
   { value: "concise", label: "Concis" },
 ];
 
+const LANGUAGES: { value: string; label: string }[] = [
+  { value: "auto", label: "Auto" },
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
+  { value: "ar", label: "العربية" },
+];
+
 export function PersonalizationSection() {
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +63,16 @@ export function PersonalizationSection() {
             options={TONES}
             value={prefs.ai_tone}
             onChange={(v) => save({ ai_tone: v })}
+          />
+        </Row>
+        <Row
+          label="Langue des réponses"
+          description="L'assistant répond toujours dans cette langue — « Auto » suit la langue de vos messages."
+        >
+          <Segmented
+            options={LANGUAGES}
+            value={prefs.ai_language || "auto"}
+            onChange={(v) => save({ ai_language: v })}
           />
         </Row>
         <Row
