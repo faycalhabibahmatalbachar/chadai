@@ -47,11 +47,11 @@ export function ConnectorCard({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex items-start justify-between gap-2">
+    <div className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 transition hover:border-[var(--primary)]/40">
+      <div className="mb-3.5 flex items-start justify-between gap-2">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
-          style={{ background: "var(--surface)" }}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           aria-hidden="true"
         >
           {icon}
@@ -72,9 +72,9 @@ export function ConnectorCard({
           )}
         </div>
       </div>
-      <p className="font-medium">{name}</p>
-      <p className="mt-0.5 text-sm text-[var(--text-secondary)]">{description}</p>
-      {children && <div className="mt-3">{children}</div>}
+      <p className="text-[15px] font-semibold">{name}</p>
+      <p className="mt-1 flex-1 text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p>
+      {children && <div className="mt-4">{children}</div>}
     </div>
   );
 }

@@ -246,7 +246,18 @@ export default function ChatPage() {
       const lastUser = [...history].reverse().find((m) => m.role === "user");
       lastUserMessageRef.current = lastUser?.content ?? "";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de charger cette conversation.");
+      const msg = err instanceof Error ? err.message : "";
+      // Conversation inexistante ou appartenant à une autre session (ancien
+      // lien, compte changé) : on repart proprement sur un nouveau chat au
+      // lieu de laisser une erreur 404 « Session introuvable » à l'écran.
+      if (/introuvable|404/i.test(msg)) {
+        setActiveSessionId(null);
+        setUrlConversation(null);
+        setMessages([]);
+        setError("Cette conversation n'est plus accessible avec ce compte — nouvelle conversation ouverte.");
+      } else {
+        setError(msg || "Impossible de charger cette conversation.");
+      }
     } finally {
       setHistoryLoading(false);
     }

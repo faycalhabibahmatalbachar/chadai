@@ -25,51 +25,109 @@ interface ActivityEntry {
   at: Date;
 }
 
+type OnStatus = (status: ConnectorStatus) => void;
+type StatusFilter = "all" | "connected" | "disconnected";
+
+const FILTER_LABEL: Record<StatusFilter, string> = {
+  all: "Tous les statuts",
+  connected: "Connectés",
+  disconnected: "Non connectés",
+};
+
 export function ConnectorsTab() {
   const [query, setQuery] = useState("");
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  // Statuts remontés en direct par chaque carte — alimente l'Aperçu et le filtre.
+  const [statuses, setStatuses] = useState<Record<string, ConnectorStatus>>({});
+  // Bump de clé = « Tester les connexions » : chaque carte re-vérifie son statut.
+  const [checkKey, setCheckKey] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   function log(label: string, detail: string) {
     setActivity((prev) => [{ id: `${Date.now()}-${Math.random()}`, label, detail, at: new Date() }, ...prev].slice(0, 20));
   }
 
+  const reportStatus = (name: string) => (s: ConnectorStatus) =>
+    setStatuses((prev) => (prev[name] === s ? prev : { ...prev, [name]: s }));
+
   const q = query.trim().toLowerCase();
-  const match = (name: string) => !q || name.toLowerCase().includes(q);
+  const match = (name: string) => {
+    if (q && !name.toLowerCase().includes(q)) return false;
+    if (statusFilter === "all") return true;
+    const s = statuses[name] ?? "loading";
+    return statusFilter === "connected" ? s === "connected" : s !== "connected";
+  };
+
+  const activeCount = Object.values(statuses).filter((s) => s === "connected").length;
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row">
       {/* ── Colonne principale ── */}
       <div className="min-w-0 flex-1">
-        <div className="relative mb-5">
-          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-            <SearchIcon />
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher des connecteurs…"
-            className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[var(--primary)]"
-          />
+        <div className="mb-5 flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
+              <SearchIcon />
+            </span>
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher des connecteurs…"
+              className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[var(--primary)]"
+            />
+          </div>
+          {/* Filtre par statut */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setFilterOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={filterOpen}
+              className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition hover:border-[var(--primary)]/50"
+            >
+              <FilterIcon />
+              <span className="hidden sm:inline">{FILTER_LABEL[statusFilter]}</span>
+              <ChevronDownIcon />
+            </button>
+            {filterOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                <div className="absolute right-0 top-full z-20 mt-1.5 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-xl">
+                  {(Object.keys(FILTER_LABEL) as StatusFilter[]).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => {
+                        setStatusFilter(f);
+                        setFilterOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm transition hover:bg-[var(--hover)]"
+                      style={{ color: statusFilter === f ? "var(--primary)" : "var(--text-secondary)" }}
+                    >
+                      {FILTER_LABEL[f]}
+                      {statusFilter === f && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div key={checkKey} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className={match("Google Agenda") ? "" : "hidden"}>
-            <GoogleConnector onLog={log} />
+            <GoogleConnector onLog={log} onStatus={reportStatus("Google Agenda")} />
           </div>
           <div className={match("Mail") ? "" : "hidden"}>
-            <MailConnector onLog={log} />
+            <MailConnector onLog={log} onStatus={reportStatus("Mail")} />
           </div>
           <div className={match("WhatsApp") ? "" : "hidden"}>
-            <WhatsAppConnector onLog={log} />
+            <WhatsAppConnector onLog={log} onStatus={reportStatus("WhatsApp")} />
           </div>
           <div className={match("Météo") ? "" : "hidden"}>
-            <ConnectorCard
-              icon="🌤️"
-              name="Météo"
-              description="Toujours actif — Toumaï AI consulte la météo en direct quand vous le demandez, sans configuration."
-              status="connected"
-            />
+            <MeteoConnector onStatus={reportStatus("Météo")} />
           </div>
         </div>
 
@@ -90,10 +148,12 @@ export function ConnectorsTab() {
         </div>
       </div>
 
-      {/* ── Rail latéral : aperçu + activité ── */}
+      {/* ── Rail latéral : aperçu dynamique + actions rapides + aide ── */}
       <aside className="w-full shrink-0 space-y-4 xl:w-72">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="mb-3 text-sm font-semibold">Aperçu</p>
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <PulseIcon /> Aperçu
+          </p>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span
@@ -104,8 +164,10 @@ export function ConnectorsTab() {
                 <PlugMiniIcon />
               </span>
               <div>
-                <p className="text-sm font-semibold">Connecteurs</p>
-                <p className="text-xs text-[var(--text-tertiary)]">WhatsApp, Mail, Agenda, Météo</p>
+                <p className="text-sm font-semibold">{activeCount}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  Connecteur{activeCount > 1 ? "s" : ""} actif{activeCount > 1 ? "s" : ""}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -131,10 +193,57 @@ export function ConnectorsTab() {
               </span>
               <div>
                 <p className="text-sm font-semibold">Tout est sécurisé</p>
-                <p className="text-xs text-[var(--text-tertiary)]">Connexions chiffrées</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Vos connexions sont chiffrées</p>
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold">
+            <BoltMiniIcon /> Actions rapides
+          </p>
+          {[
+            {
+              label: "Ajouter un connecteur",
+              icon: <PlusMiniIcon />,
+              onClick: () => {
+                setStatusFilter("disconnected");
+                searchRef.current?.focus();
+              },
+            },
+            {
+              label: "Tester les connexions",
+              icon: <RefreshMiniIcon />,
+              onClick: () => {
+                setStatuses({});
+                setCheckKey((k) => k + 1);
+                log("Test des connexions", "Vérification relancée");
+              },
+            },
+          ].map((a) => (
+            <button
+              key={a.label}
+              onClick={a.onClick}
+              className="flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            >
+              <span className="flex items-center gap-2.5">
+                {a.icon}
+                {a.label}
+              </span>
+              <ChevronRightMini />
+            </button>
+          ))}
+          <a
+            href="/whatsapp"
+            className="flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          >
+            <span className="flex items-center gap-2.5">
+              <JournalMiniIcon />
+              Voir les journaux
+            </span>
+            <ChevronRightMini />
+          </a>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -156,8 +265,95 @@ export function ConnectorsTab() {
             </ul>
           )}
         </div>
+
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <p className="mb-1 text-sm font-semibold">Besoin d&apos;aide ?</p>
+          <p className="text-xs leading-relaxed text-[var(--text-tertiary)]">
+            Consultez le guide des connecteurs ou contactez le support.
+          </p>
+          <a
+            href="/settings?tab=support"
+            className="mt-3 inline-block rounded-full border border-[var(--border)] px-4 py-1.5 text-xs font-medium transition hover:border-[var(--primary)]/60"
+          >
+            Aide & Support ↗
+          </a>
+        </div>
       </aside>
     </div>
+  );
+}
+
+/** Météo — toujours actif, sans configuration. */
+function MeteoConnector({ onStatus }: { onStatus?: OnStatus }) {
+  useEffect(() => {
+    onStatus?.("connected");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <ConnectorCard
+      icon="🌤️"
+      name="Météo"
+      description="Toujours actif — Toumaï AI consulte la météo en direct quand vous le demandez, sans configuration."
+      status="connected"
+    />
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M3 5h18l-7 8v6l-4-2v-4L3 5z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronRightMini() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-tertiary)]">
+      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PulseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M2 12h4l3-8 6 16 3-8h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlusMiniIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v8M8 12h8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RefreshMiniIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M21 12a9 9 0 11-2.64-6.36M21 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function JournalMiniIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinejoin="round" />
+      <path d="M14 2v6h6M8 13h8M8 17h5" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -206,7 +402,7 @@ function SearchIcon() {
 
 type OnLog = (label: string, detail: string) => void;
 
-function GoogleConnector({ onLog }: { onLog: OnLog }) {
+function GoogleConnector({ onLog, onStatus }: { onLog: OnLog; onStatus?: OnStatus }) {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -272,6 +468,10 @@ function GoogleConnector({ onLog }: { onLog: OnLog }) {
   }
 
   const status: ConnectorStatus = connected === null ? "loading" : connected ? "connected" : "disconnected";
+  useEffect(() => {
+    onStatus?.(status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   return (
     <ConnectorCard
@@ -306,7 +506,7 @@ function GoogleConnector({ onLog }: { onLog: OnLog }) {
   );
 }
 
-function MailConnector({ onLog }: { onLog: OnLog }) {
+function MailConnector({ onLog, onStatus }: { onLog: OnLog; onStatus?: OnStatus }) {
   const [status, setStatus] = useState<MailStatus | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | undefined>(undefined);
   const [form, setForm] = useState(false);
@@ -358,6 +558,10 @@ function MailConnector({ onLog }: { onLog: OnLog }) {
   }
 
   const cStatus: ConnectorStatus = status === null ? "loading" : status.connected ? "connected" : "disconnected";
+  useEffect(() => {
+    onStatus?.(cStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cStatus]);
 
   return (
     <ConnectorCard
@@ -433,7 +637,7 @@ function MailConnector({ onLog }: { onLog: OnLog }) {
   );
 }
 
-function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
+function WhatsAppConnector({ onLog, onStatus }: { onLog: OnLog; onStatus?: OnStatus }) {
   const [state, setState] = useState<WhatsAppState | null>(null);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date | undefined>(undefined);
@@ -519,6 +723,22 @@ function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
     }
   }
 
+  const cStatus: ConnectorStatus =
+    state === null
+      ? "loading"
+      : state.status === "unconfigured"
+        ? "unavailable"
+        : state.status === "connected"
+          ? "connected"
+          : state.status === "qr" || state.status === "pairing" || state.status === "connecting"
+            ? "pending"
+            : "disconnected";
+  // Toujours AVANT le return conditionnel (règles des hooks React).
+  useEffect(() => {
+    onStatus?.(cStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cStatus]);
+
   if (state?.status === "unconfigured") {
     return (
       <ConnectorCard
@@ -529,15 +749,6 @@ function WhatsAppConnector({ onLog }: { onLog: OnLog }) {
       />
     );
   }
-
-  const cStatus: ConnectorStatus =
-    state === null
-      ? "loading"
-      : state.status === "connected"
-        ? "connected"
-        : state.status === "qr" || state.status === "pairing" || state.status === "connecting"
-          ? "pending"
-          : "disconnected";
 
   const description =
     state?.status === "connected" && state.number

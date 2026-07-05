@@ -58,8 +58,12 @@ async function request<T>(
 export async function guestLogin(): Promise<TokenPayload> {
   const res = await request<TokenPayload>("/auth/guest", { method: "POST" });
   if (!res.data) throw new Error("Réponse invalide du serveur");
-  saveSession(res.data);
-  return res.data;
+  // Le backend n'inclut pas toujours is_guest dans sa réponse — sans ce flag,
+  // toute l'UI traitait l'invité comme un compte réel (nom « guest-<uuid> »
+  // affiché, redirection /login?expired au lieu d'une reconnexion invitée…).
+  const payload: TokenPayload = { ...res.data, is_guest: true };
+  saveSession(payload);
+  return payload;
 }
 
 export async function login(email: string, password: string): Promise<TokenPayload> {
@@ -68,8 +72,9 @@ export async function login(email: string, password: string): Promise<TokenPaylo
     body: JSON.stringify({ email, password }),
   });
   if (!res.data) throw new Error("Réponse invalide du serveur");
-  saveSession(res.data);
-  return res.data;
+  const payload: TokenPayload = { ...res.data, is_guest: false };
+  saveSession(payload);
+  return payload;
 }
 
 export async function register(
@@ -82,8 +87,9 @@ export async function register(
     body: JSON.stringify({ email, password, name }),
   });
   if (res.data) {
-    saveSession(res.data);
-    return res.data;
+    const payload: TokenPayload = { ...res.data, is_guest: false };
+    saveSession(payload);
+    return payload;
   }
   // Confirmation e-mail requise : pas de session immédiate.
   return null;
@@ -95,8 +101,9 @@ export async function loginWithGoogle(idToken: string): Promise<TokenPayload> {
     body: JSON.stringify({ id_token: idToken }),
   });
   if (!res.data) throw new Error("Réponse invalide du serveur");
-  saveSession(res.data);
-  return res.data;
+  const payload: TokenPayload = { ...res.data, is_guest: false };
+  saveSession(payload);
+  return payload;
 }
 
 /** Client fetch authentifié — ajoute le Bearer token de la session courante. */
@@ -127,8 +134,11 @@ export function tryRefreshSession(): Promise<TokenPayload | null> {
   })
     .then((res) => {
       if (!res.data) return null;
-      saveSession(res.data);
-      return res.data;
+      // /auth/refresh ne renvoie pas is_guest — on préserve le flag de la
+      // session courante pour ne pas « changer d'identité » à chaque refresh.
+      const payload: TokenPayload = { ...res.data, is_guest: current.is_guest ?? false };
+      saveSession(payload);
+      return payload;
     })
     .catch(() => null)
     .finally(() => {
