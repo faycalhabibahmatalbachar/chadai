@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getProfile, type UserProfile } from "@/lib/user-api";
+import { cacheSeed, cacheWrite } from "@/lib/swr-cache";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { cxScopeClass, cxScopeStyle, cxDisplayStyle } from "@/components/settings/cx-fonts";
@@ -114,7 +115,11 @@ const LEGACY_TABS: Record<string, Section> = {
 export default function SettingsPage() {
   const { session, loading, loginAsGuest } = useAuth();
   const [section, setSection] = useState<Section>("general");
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  // Profil seedé depuis le cache : la carte identité s'affiche immédiatement
+  // (plus de « Connexion… ») pendant la revalidation en arrière-plan.
+  const [profile, setProfile] = useState<UserProfile | null>(() =>
+    cacheSeed<UserProfile>("user:profile"),
+  );
   const guestAttempted = useRef(false);
 
   useEffect(() => {
@@ -126,7 +131,10 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!session) return;
     getProfile()
-      .then(setProfile)
+      .then((p) => {
+        setProfile(p);
+        cacheWrite("user:profile", p);
+      })
       .catch(() => {});
   }, [session]);
 

@@ -18,6 +18,7 @@ import { Waveform } from "@/components/Waveform";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { ShareDialog } from "@/components/ShareDialog";
 import { BrowserAgentOverlay, detectBrowserGoal } from "@/components/BrowserAgentOverlay";
+import { cacheSeed, cacheWrite } from "@/lib/swr-cache";
 
 /** Synchronise l'URL avec la conversation active (/chat?c=<id>) — chaque
  * conversation a son adresse, ouvrable/partageable comme sur Gemini. */
@@ -159,11 +160,16 @@ export default function ChatPage() {
   // Prénom affiché dans l'accueil pour les comptes réels (comme
   // "À vous la parole, {NOM}" sur Gemini) — les invités gardent la version
   // générique, on n'a pas d'identité à afficher pour eux.
-  const [firstName, setFirstName] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(
+    () =>
+      cacheSeed<{ full_name?: string | null }>("user:profile")?.full_name?.trim().split(/\s+/)[0] ??
+      null,
+  );
   useEffect(() => {
     if (!session || session.is_guest) return;
     getProfile()
       .then((p) => {
+        cacheWrite("user:profile", p);
         const name = p.full_name?.trim().split(/\s+/)[0];
         if (name) setFirstName(name);
       })
@@ -227,22 +233,32 @@ export default function ChatPage() {
   }, [error]);
 
   // Chargement de l'historique quand l'utilisateur change de conversation.
+  // Cache persistant : la conversation s'affiche instantanément depuis le
+  // localStorage (zéro squelette au retour), puis se revalide en arrière-plan.
   async function openSession(id: string) {
     setActiveSessionId(id);
     setUrlConversation(id);
-    setHistoryLoading(true);
+    const cached = cacheSeed<Message[]>(`chat:history:${id}`);
+    if (cached && cached.length) {
+      setMessages(cached);
+      setHistoryLoading(false);
+    } else {
+      setHistoryLoading(true);
+    }
     setError(null);
     try {
       const history = await getHistory(id);
-      setMessages(
-        history.map((m) => ({
-          id: m.id,
-          serverId: m.id,
-          role: m.role,
-          content: m.content,
-          imageUrls: m.metadata?.image_urls,
-        })),
-      );
+      const mapped: Message[] = history.map((m) => ({
+        id: m.id,
+        serverId: m.id,
+        role: m.role,
+        content: m.content,
+        imageUrls: m.metadata?.image_urls,
+      }));
+      setMessages(mapped);
+      // On borne à 60 messages en cache : assez pour un retour instantané,
+      // sans saturer le quota localStorage sur les longues conversations.
+      cacheWrite(`chat:history:${id}`, mapped.slice(-60));
       const lastUser = [...history].reverse().find((m) => m.role === "user");
       lastUserMessageRef.current = lastUser?.content ?? "";
     } catch (err) {
@@ -827,8 +843,8 @@ export default function ChatPage() {
                   </>
                 )}
               </div>
-              <ModelSelector value={model} onChange={setModel} />
               <div className="flex-1" />
+              <ModelSelector value={model} onChange={setModel} />
               <button
                 onClick={toggleDictation}
                 aria-label={dictating ? "Arrêter la dictée" : "Dicter"}

@@ -11,7 +11,8 @@ import {
   setSessionPinned,
   type ChatSession,
 } from "@/lib/chat-api";
-import { getProfile } from "@/lib/user-api";
+import { getProfile, type UserProfile } from "@/lib/user-api";
+import { cacheSeed, cacheWrite } from "@/lib/swr-cache";
 import { Logo } from "./Logo";
 
 interface SidebarProps {
@@ -27,8 +28,12 @@ const COLLAPSE_KEY = "toumai_sidebar_collapsed";
 
 export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClose }: SidebarProps) {
   const { session } = useAuth();
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Cache persistant : l'historique s'affiche instantanément au retour sur la
+  // page, puis se revalide en arrière-plan (plus de squelette à chaque visite).
+  const [sessions, setSessions] = useState<ChatSession[]>(
+    () => cacheSeed<ChatSession[]>("chat:sessions") ?? [],
+  );
+  const [loading, setLoading] = useState(sessions.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   // Repli façon Gemini (desktop uniquement) — rail d'icônes, persisté.
@@ -49,11 +54,20 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   const [menuId, setMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Profil seedé depuis le cache : nom + avatar affichés immédiatement,
+  // plus de « Connexion… » à chaque retour sur la page.
+  const [displayName, setDisplayName] = useState<string | null>(
+    () => cacheSeed<UserProfile>("user:profile")?.full_name ?? null,
+  );
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    () => cacheSeed<UserProfile>("user:profile")?.avatar_url ?? null,
+  );
   // Ne jamais afficher « Session invité » à un compte connecté le temps que
-  // le profil charge — on attend la réponse avant de trancher.
-  const [profileResolved, setProfileResolved] = useState(false);
+  // le profil charge — on attend la réponse avant de trancher (sauf si le
+  // cache a déjà tranché).
+  const [profileResolved, setProfileResolved] = useState(
+    () => cacheSeed<UserProfile>("user:profile") !== null,
+  );
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +78,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
     }
     getProfile()
       .then((p) => {
+        cacheWrite("user:profile", p);
         setDisplayName(p.full_name ?? null);
         setAvatarUrl(p.avatar_url ?? null);
       })
@@ -83,11 +98,15 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    setLoading(true);
+    // Squelette seulement si on n'a rien à montrer — sinon revalidation
+    // silencieuse derrière la liste en cache.
+    setLoading((sessions.length === 0) as boolean);
     setError(null);
     listSessions()
       .then((data) => {
-        if (!cancelled) setSessions(data);
+        if (cancelled) return;
+        setSessions(data);
+        cacheWrite("chat:sessions", data);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Erreur réseau");
@@ -98,6 +117,7 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, refreshKey]);
 
   async function handleDelete(id: string) {
@@ -105,7 +125,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
     setDeletingId(id);
     try {
       await deleteSession(id);
-      setSessions((prev) => prev.filter((s) => s.id !== id));
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== id);
+        cacheWrite("chat:sessions", next);
+        return next;
+      });
       if (activeId === id) onNewChat();
     } catch {
       // L'échec de suppression laisse la conversation visible — pas d'état incohérent.
@@ -117,7 +141,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
   async function togglePin(s: ChatSession) {
     setMenuId(null);
     const next = !s.pinned;
-    setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, pinned: next } : x)));
+    setSessions((prev) => {
+      const updated = prev.map((x) => (x.id === s.id ? { ...x, pinned: next } : x));
+      cacheWrite("chat:sessions", updated);
+      return updated;
+    });
     try {
       await setSessionPinned(s.id, next);
     } catch {
@@ -136,7 +164,11 @@ export function Sidebar({ activeId, onSelect, onNewChat, refreshKey, open, onClo
     setRenamingId(null);
     if (!title) return;
     const prevTitle = sessions.find((s) => s.id === id)?.title;
-    setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)));
+    setSessions((prev) => {
+      const updated = prev.map((s) => (s.id === id ? { ...s, title } : s));
+      cacheWrite("chat:sessions", updated);
+      return updated;
+    });
     try {
       await renameSession(id, title);
     } catch {
