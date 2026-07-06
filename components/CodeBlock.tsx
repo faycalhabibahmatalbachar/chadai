@@ -12,6 +12,13 @@ import css from "highlight.js/lib/languages/css";
 import sql from "highlight.js/lib/languages/sql";
 import java from "highlight.js/lib/languages/java";
 import yaml from "highlight.js/lib/languages/yaml";
+import {
+  isBrowserPython,
+  isConsoleRunnable,
+  isWebPreview,
+  runPythonInBrowser,
+  runViaBackend,
+} from "@/lib/code-run";
 
 let registered = false;
 function ensureLanguages() {
@@ -38,51 +45,15 @@ function ensureLanguages() {
   registered = true;
 }
 
-/* ── Artefacts (mode coding) ────────────────────────────────────────────────
- * Le code HTML/SVG/JS généré par Toumaï AI s'exécute en direct dans un
- * aperçu sandboxé (iframe srcdoc, scripts isolés, aucun accès au site) —
- * l'esprit « HTML is the new markdown » : on ne lit pas le code, on le voit
- * fonctionner. */
+/* ── Aperçu web (HTML/SVG) — iframe sandboxée plein écran ─────────────────── */
 
-const RUNNABLE = new Set(["html", "xml", "svg", "js", "javascript"]);
-
-function isRunnable(language: string, code: string): boolean {
-  const lang = (language || "").toLowerCase();
-  if (!RUNNABLE.has(lang)) return false;
-  if (lang === "xml") return /<(!DOCTYPE|html|body|svg)/i.test(code);
-  return true;
-}
-
-/** Prépare le document exécutable selon le langage. */
 function buildSrcDoc(language: string, code: string): string {
   const lang = (language || "").toLowerCase();
   if (lang === "svg" || (lang === "xml" && /<svg/i.test(code) && !/<html/i.test(code))) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#fff">${code}</body></html>`;
   }
-  if (lang === "js" || lang === "javascript") {
-    // Console visible dans l'aperçu : les console.log/error s'affichent.
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{margin:0;font:14px/1.6 ui-monospace,Consolas,monospace;background:#111;color:#eee;padding:16px}
-.log{white-space:pre-wrap;border-bottom:1px solid #2a2a2a;padding:4px 0}
-.err{color:#ff7b6b}
-</style></head><body>
-<div id="__out"></div>
-<script>
-(function(){
-  var out=document.getElementById('__out');
-  function line(txt,cls){var d=document.createElement('div');d.className='log'+(cls?' '+cls:'');d.textContent=txt;out.appendChild(d);}
-  ['log','info','warn'].forEach(function(k){var o=console[k].bind(console);console[k]=function(){o.apply(null,arguments);line(Array.prototype.map.call(arguments,function(a){try{return typeof a==='object'?JSON.stringify(a):String(a)}catch(e){return String(a)}}).join(' '));};});
-  var oe=console.error.bind(console);console.error=function(){oe.apply(null,arguments);line(Array.prototype.map.call(arguments,String).join(' '),'err');};
-  window.addEventListener('error',function(e){line(e.message,'err');});
-})();
-</script>
-<script>${code.replace(/<\/script>/gi, "<\\/script>")}</script>
-</body></html>`;
-  }
   return code; // html complet ou fragment — le navigateur gère les deux
 }
-
-const EXT: Record<string, string> = { svg: "svg", js: "html", javascript: "html" };
 
 function ArtifactPreview({
   language,
@@ -105,7 +76,7 @@ function ArtifactPreview({
   }, [onClose]);
 
   function download() {
-    const ext = EXT[(language || "").toLowerCase()] ?? "html";
+    const ext = (language || "").toLowerCase() === "svg" ? "svg" : "html";
     const blob = new Blob([ext === "svg" ? code : buildSrcDoc(language, code)], {
       type: ext === "svg" ? "image/svg+xml" : "text/html",
     });
@@ -150,7 +121,7 @@ function ArtifactPreview({
           <button
             onClick={() => setRunKey((k) => k + 1)}
             title="Relancer"
-            aria-label="Relancer l'exécution"
+            aria-label="Relancer l'aperçu"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             <RefreshIcon />
@@ -191,6 +162,68 @@ function ArtifactPreview({
   );
 }
 
+/* ── Console d'exécution inline (Python navigateur + backend) ─────────────── */
+
+interface OutLine {
+  text: string;
+  stream: "out" | "err" | "status";
+}
+
+function OutputConsole({
+  lines,
+  running,
+  onClear,
+}: {
+  lines: OutLine[];
+  running: boolean;
+  onClear: () => void;
+}) {
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [lines]);
+
+  return (
+    <div className="border-t border-[var(--border)] bg-[#0d0d0f]">
+      <div className="flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--text-tertiary)]">
+        <span className="flex items-center gap-1.5 font-medium">
+          <TerminalIcon />
+          {running ? "Exécution…" : "Sortie"}
+        </span>
+        <button onClick={onClear} className="rounded px-1.5 py-0.5 transition hover:text-[var(--text-primary)]">
+          Effacer
+        </button>
+      </div>
+      <div className="max-h-64 overflow-auto px-3 pb-3 font-mono text-[12.5px] leading-relaxed">
+        {lines.length === 0 && !running ? (
+          <p className="text-[var(--text-tertiary)]">Aucune sortie.</p>
+        ) : (
+          lines.map((l, i) => (
+            <pre
+              key={i}
+              className="m-0 whitespace-pre-wrap break-words"
+              style={{
+                color:
+                  l.stream === "err"
+                    ? "#ff7b6b"
+                    : l.stream === "status"
+                      ? "#d9a441"
+                      : "#e6e1d8",
+              }}
+            >
+              {l.text}
+            </pre>
+          ))
+        )}
+        {running && <span className="streaming-cursor text-[#d9a441]">▋</span>}
+        <div ref={endRef} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Bloc de code ─────────────────────────────────────────────────────────── */
+
 export function CodeBlock({
   language,
   code,
@@ -198,13 +231,16 @@ export function CodeBlock({
 }: {
   language: string;
   code: string;
-  /** false : désactive le bouton Exécuter (ex. onglet Code de l'aperçu). */
+  /** false : désactive Exécuter/Aperçu (ex. onglet Code de l'aperçu). */
   runnable?: boolean;
 }) {
   ensureLanguages();
   const ref = useRef<HTMLElement>(null);
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [out, setOut] = useState<OutLine[]>([]);
+  const [running, setRunning] = useState(false);
+  const [consoleOpen, setConsoleOpen] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -223,21 +259,63 @@ export function CodeBlock({
     setTimeout(() => setCopied(false), 1500);
   }
 
-  const canRun = runnable && isRunnable(language, code);
+  const webPreview = runnable && isWebPreview(language, code);
+  const consoleRun = runnable && !webPreview && isConsoleRunnable(language);
+
+  function log(text: string, stream: OutLine["stream"]) {
+    setOut((prev) => [...prev, { text, stream }]);
+  }
+
+  async function run() {
+    setConsoleOpen(true);
+    setOut([]);
+    setRunning(true);
+    try {
+      if (isBrowserPython(language)) {
+        // Python exécuté dans le navigateur : installe et utilise de vraies
+        // bibliothèques (numpy, pandas, requests…) à la volée.
+        await runPythonInBrowser(code, (line, stream) => log(line, stream));
+      } else {
+        const res = await runViaBackend(language, code);
+        if (res.error) {
+          log(res.error, "err");
+        } else {
+          if (res.output?.trim()) log(res.output.replace(/\n$/, ""), res.stderr ? "err" : "out");
+          if (!res.output?.trim()) log("(aucune sortie)", "status");
+          if (typeof res.exitCode === "number" && res.exitCode !== 0) {
+            log(`— code de sortie ${res.exitCode}`, "status");
+          }
+        }
+      }
+    } finally {
+      setRunning(false);
+    }
+  }
 
   return (
     <div className="my-2 overflow-hidden rounded-lg border border-[var(--border)]">
       <div className="flex items-center justify-between bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-tertiary)]">
         <span>{language || "text"}</span>
         <div className="flex items-center gap-1">
-          {canRun && (
+          {webPreview && (
             <button
               onClick={() => setPreviewOpen(true)}
               className="flex items-center gap-1.5 rounded px-2 py-0.5 font-semibold transition hover:bg-[var(--hover)]"
               style={{ color: "var(--primary)" }}
             >
               <PlayIcon />
-              Exécuter
+              Aperçu
+            </button>
+          )}
+          {consoleRun && (
+            <button
+              onClick={run}
+              disabled={running}
+              className="flex items-center gap-1.5 rounded px-2 py-0.5 font-semibold transition hover:bg-[var(--hover)] disabled:opacity-50"
+              style={{ color: "var(--primary)" }}
+            >
+              <PlayIcon />
+              {running ? "…" : "Exécuter"}
             </button>
           )}
           <button
@@ -253,6 +331,16 @@ export function CodeBlock({
           {code}
         </code>
       </pre>
+      {consoleOpen && (
+        <OutputConsole
+          lines={out}
+          running={running}
+          onClear={() => {
+            setOut([]);
+            setConsoleOpen(false);
+          }}
+        />
+      )}
       {previewOpen && (
         <ArtifactPreview language={language} code={code} onClose={() => setPreviewOpen(false)} />
       )}
@@ -266,6 +354,14 @@ function PlayIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M7 4.5v15l13-7.5-13-7.5z" />
+    </svg>
+  );
+}
+
+function TerminalIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 17l6-5-6-5M12 19h8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
