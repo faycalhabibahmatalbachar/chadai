@@ -847,6 +847,13 @@ export default function ChatPage() {
                         <PlugIcon />
                         Connecteurs
                       </Link>
+                      <Link
+                        href="/automations"
+                        className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-[var(--hover)]"
+                      >
+                        <BoltIcon />
+                        Automatisation IA
+                      </Link>
                     </div>
                   </>
                 )}
@@ -994,6 +1001,14 @@ function FileIcon() {
         strokeLinejoin="round"
       />
       <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BoltIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" strokeLinejoin="round" />
     </svg>
   );
 }
