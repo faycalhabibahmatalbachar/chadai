@@ -46,9 +46,13 @@ export type WhatsAppStatus =
 
 export interface WhatsAppState {
   status: WhatsAppStatus;
+  /** QR code (data:image/png;base64,…) à scanner dans WhatsApp. */
+  qr?: string | null;
   pairingCode?: string | null;
   codeExpiresAt?: string | null;
   number?: string | null;
+  /** Message d'erreur éventuel renvoyé par la passerelle. */
+  error?: string | null;
 }
 
 export function getWhatsAppStatus(): Promise<WhatsAppState> {

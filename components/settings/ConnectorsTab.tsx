@@ -1136,26 +1136,52 @@ function WhatsAppRow({ onStatus }: { onStatus: OnStatus }) {
               ]
         }
         expanded={
-          state?.pairingCode && rowStatus === "pending" ? (
-            <div className="flex max-w-md flex-col gap-2">
-              <p className="text-[13px] text-[var(--cx-text-secondary)]">
-                Dans WhatsApp : Appareils connectés → Lier avec le numéro de téléphone, puis
-                saisissez :
-              </p>
-              <p
-                className="w-fit rounded-[9px] border border-[var(--cx-border-default)] bg-[var(--cx-input)] px-4 py-2 font-mono text-lg font-semibold tracking-[0.2em] text-[var(--cx-text-primary)]"
-              >
-                {state.pairingCode}
-              </p>
-              <button
-                onClick={refreshCode}
-                disabled={busy}
-                className="w-fit text-[12px] text-[var(--cx-text-faint)] underline underline-offset-2 transition hover:text-[var(--cx-text-primary)] disabled:opacity-40"
-              >
-                Code expiré ? Regénérer
-              </button>
+          rowStatus === "pending" && (state?.qr || state?.pairingCode) ? (
+            <div className="flex max-w-md flex-col gap-3">
+              {state?.pairingCode ? (
+                <>
+                  <p className="text-[13px] text-[var(--cx-text-secondary)]">
+                    Dans WhatsApp : <strong>Appareils connectés → Lier un appareil → Lier avec le
+                    numéro de téléphone</strong>, puis saisissez ce code :
+                  </p>
+                  <p className="w-fit rounded-[9px] border border-[var(--cx-border-default)] bg-[var(--cx-input)] px-4 py-2 font-mono text-lg font-semibold tracking-[0.2em] text-[var(--cx-text-primary)]">
+                    {state.pairingCode}
+                  </p>
+                  <button
+                    onClick={refreshCode}
+                    disabled={busy}
+                    className="w-fit text-[12px] text-[var(--cx-text-faint)] underline underline-offset-2 transition hover:text-[var(--cx-text-primary)] disabled:opacity-40"
+                  >
+                    Code expiré ? Regénérer
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[13px] text-[var(--cx-text-secondary)]">
+                    Dans WhatsApp : <strong>Appareils connectés → Lier un appareil</strong>, puis
+                    scannez ce QR code :
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={state.qr!}
+                    alt="QR code WhatsApp"
+                    className="h-52 w-52 rounded-xl border border-[var(--cx-border-default)] bg-white p-2"
+                  />
+                </>
+              )}
+              <div className="flex items-center gap-2 text-[12px] text-[var(--cx-text-faint)]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--cx-success)]" />
+                En attente de la connexion…
+                <button
+                  onClick={disconnect}
+                  disabled={busy}
+                  className="ml-2 underline underline-offset-2 transition hover:text-[var(--cx-text-primary)]"
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
-          ) : linkOpen && rowStatus === "disconnected" ? (
+          ) : linkOpen && (rowStatus === "disconnected" || rowStatus === "error") ? (
             <div className="flex max-w-sm flex-col gap-2">
               <input
                 type="tel"
