@@ -718,6 +718,7 @@ export default function ChatPage() {
                       ? regenerate
                       : undefined
                   }
+                  onSuggest={!sending ? (text) => send(text) : undefined}
                 />
               ))}
 

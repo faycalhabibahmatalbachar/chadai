@@ -6,6 +6,17 @@ import remarkGfm from "remark-gfm";
 import { confirmToolAction, sendFeedback } from "@/lib/chat-api";
 import type { ToolConfirmation } from "@/lib/chat-stream";
 import { CodeBlock } from "./CodeBlock";
+import { SiteBuildingCard, SiteSuggestions } from "./SiteBuilder";
+
+/** Détecte un bloc ```html en cours d'écriture (ouvert mais pas encore fermé)
+ * dans un message en streaming — déclenche la carte de construction animée. */
+function pendingHtmlBlock(content: string): number | null {
+  const open = content.search(/```html/i);
+  if (open === -1) return null;
+  const after = content.slice(open + 6);
+  if (after.includes("```")) return null; // bloc déjà fermé
+  return after.length; // longueur du code déjà reçu
+}
 
 export interface Message {
   id: string;
@@ -265,11 +276,14 @@ export function ChatMessage({
   onEdit,
   editable = true,
   onRegenerate,
+  onSuggest,
 }: {
   message: Message;
   onEdit?: (newContent: string) => void;
   editable?: boolean;
   onRegenerate?: () => void;
+  /** Renvoie une demande d'amélioration dans le chat (suggestions de site). */
+  onSuggest?: (text: string) => void;
 }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
@@ -368,6 +382,17 @@ export function ChatMessage({
     );
   }
 
+  // Pendant le streaming d'un site : on masque le code brut qui défile et on
+  // affiche la carte de construction animée à sa place (le texte avant le bloc
+  // reste rendu). Une fois le site terminé, on propose des améliorations.
+  const buildingLen = message.streaming ? pendingHtmlBlock(message.content || "") : null;
+  const building = buildingLen !== null;
+  const hasFinishedHtml =
+    !message.streaming && /```html[\s\S]*?```/i.test(message.content || "");
+  const visibleContent = building
+    ? (message.content || "").replace(/```html[\s\S]*$/i, "").trimEnd()
+    : message.content || "";
+
   return (
     <div className="animate-fade-in">
       <div className="max-w-[80ch] text-[length:var(--chat-fs,15px)] leading-relaxed">
@@ -394,8 +419,10 @@ export function ChatMessage({
                 },
               }}
             >
-              {message.content || ""}
+              {visibleContent}
             </ReactMarkdown>
+            {building && <SiteBuildingCard codeLength={buildingLen ?? 0} />}
+            {hasFinishedHtml && <SiteSuggestions onSuggest={onSuggest} />}
           </div>
         )}
         {message.streaming && message.content && (

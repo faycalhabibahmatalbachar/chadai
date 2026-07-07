@@ -19,6 +19,7 @@ import {
   runPythonInBrowser,
   runViaBackend,
 } from "@/lib/code-run";
+import { publishSite } from "@/lib/sites-api";
 
 let registered = false;
 function ensureLanguages() {
@@ -66,6 +67,12 @@ function ArtifactPreview({
 }) {
   const [tab, setTab] = useState<"preview" | "code">("preview");
   const [runKey, setRunKey] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const canPublish = (language || "").toLowerCase() === "html";
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -74,6 +81,27 @@ function ArtifactPreview({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  async function publish() {
+    setPublishing(true);
+    setPublishErr(null);
+    try {
+      const title = (code.match(/<title>([^<]{1,80})<\/title>/i)?.[1] || "Mon site").trim();
+      const { path } = await publishSite(buildSrcDoc(language, code), title);
+      setPublishedUrl(`${window.location.origin}${path}`);
+    } catch (e) {
+      setPublishErr(e instanceof Error ? e.message : "Publication impossible.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function copyUrl() {
+    if (!publishedUrl) return;
+    await navigator.clipboard.writeText(publishedUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 1500);
+  }
 
   function download() {
     const ext = (language || "").toLowerCase() === "svg" ? "svg" : "html";
@@ -118,6 +146,28 @@ function ArtifactPreview({
               </button>
             ))}
           </div>
+          {canPublish &&
+            (publishedUrl ? (
+              <button
+                onClick={copyUrl}
+                title="Copier le lien"
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium transition hover:bg-[var(--hover)]"
+                style={{ color: "var(--success)" }}
+              >
+                <LinkIcon />
+                {copiedUrl ? "Lien copié" : "En ligne"}
+              </button>
+            ) : (
+              <button
+                onClick={publish}
+                disabled={publishing}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ background: "var(--primary)" }}
+              >
+                <GlobeIcon />
+                {publishing ? "Publication…" : "Publier"}
+              </button>
+            ))}
           <button
             onClick={() => setRunKey((k) => k + 1)}
             title="Relancer"
@@ -144,6 +194,29 @@ function ArtifactPreview({
           </button>
         </div>
       </div>
+
+      {/* Bandeau « site en ligne » après publication */}
+      {publishedUrl && (
+        <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-4 py-2 text-xs">
+          <GlobeIcon />
+          <span className="text-[var(--text-secondary)]">Votre site est en ligne :</span>
+          <a
+            href={publishedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate font-semibold"
+            style={{ color: "var(--primary)" }}
+          >
+            {publishedUrl.replace(/^https?:\/\//, "")}
+          </a>
+          <button onClick={copyUrl} className="ml-auto shrink-0 rounded px-2 py-0.5 font-medium text-[var(--text-tertiary)] transition hover:text-[var(--text-primary)]">
+            {copiedUrl ? "Copié" : "Copier"}
+          </button>
+        </div>
+      )}
+      {publishErr && (
+        <p className="border-b border-[var(--border)] px-4 py-2 text-xs text-[var(--error)]">{publishErr}</p>
+      )}
 
       {tab === "preview" ? (
         <iframe
@@ -454,6 +527,23 @@ function CloseIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
+      <path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
