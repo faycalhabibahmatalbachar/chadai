@@ -711,6 +711,9 @@ export default function ChatPage() {
                 <ChatMessage
                   key={m.id}
                   message={m}
+                  // Message précédent : sert de base HTML pour appliquer un
+                  // patch d'édition (SEARCH/REPLACE) renvoyé par l'IA.
+                  prevContent={i > 0 ? messages[i - 1].content : undefined}
                   editable={!sending}
                   onEdit={m.role === "user" ? (text) => editMessage(m.id, text) : undefined}
                   onRegenerate={

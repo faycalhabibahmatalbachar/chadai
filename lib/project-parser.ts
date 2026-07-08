@@ -59,6 +59,68 @@ export function entryHtml(files: ProjectFile[]): ProjectFile | null {
   );
 }
 
+/* ── Édition par patch SEARCH/REPLACE (façon Aider/Cursor) ─────────────────
+ * L'IA renvoie SEULEMENT les portions modifiées ; on les applique au code
+ * existant. Résultat : impossible de « recréer le site de zéro » — seules les
+ * portions ciblées changent, le reste est garanti identique. */
+
+export interface Patch {
+  search: string;
+  replace: string;
+}
+
+const SR_BLOCK =
+  /<{3,}\s*SEARCH\s*\n([\s\S]*?)\n={3,}\s*\n([\s\S]*?)\n>{3,}\s*REPLACE/gi;
+
+/** Extrait les blocs SEARCH/REPLACE d'une réponse. */
+export function parseSearchReplace(text: string): Patch[] {
+  const patches: Patch[] = [];
+  let m: RegExpExecArray | null;
+  SR_BLOCK.lastIndex = 0;
+  while ((m = SR_BLOCK.exec(text))) {
+    patches.push({ search: m[1], replace: m[2] });
+  }
+  return patches;
+}
+
+/** Applique les patches au HTML de base. Tolérant : essaie une correspondance
+ * exacte, puis en ignorant les espaces de bord de ligne. Retourne le nouveau
+ * HTML et le nombre de patches appliqués. */
+export function applyPatches(baseHtml: string, patches: Patch[]): { html: string; applied: number } {
+  let html = baseHtml;
+  let applied = 0;
+  for (const p of patches) {
+    if (!p.search.trim()) {
+      // SEARCH vide = insertion : on ne devine pas → ignore prudemment.
+      continue;
+    }
+    if (html.includes(p.search)) {
+      html = html.replace(p.search, p.replace);
+      applied++;
+      continue;
+    }
+    // Tolérance : compare en normalisant les espaces de fin de ligne.
+    const norm = (s: string) => s.replace(/[ \t]+$/gm, "");
+    const nHtml = norm(html);
+    const nSearch = norm(p.search);
+    const idx = nHtml.indexOf(nSearch);
+    if (idx >= 0) {
+      // Retrouve la portion originale correspondante par longueur approx.
+      const before = html.slice(0, idx);
+      const after = html.slice(idx + p.search.length);
+      html = before + p.replace + after;
+      applied++;
+    }
+  }
+  return { html, applied };
+}
+
+/** Vrai si le texte contient au moins un bloc SEARCH/REPLACE. */
+export function hasPatches(text: string): boolean {
+  SR_BLOCK.lastIndex = 0;
+  return SR_BLOCK.test(text);
+}
+
 /** Liste des pages HTML navigables d'un projet (pour les sous-pages). */
 export function htmlPages(files: ProjectFile[]): ProjectFile[] {
   return files.filter((f) => f.path.toLowerCase().endsWith(".html"));

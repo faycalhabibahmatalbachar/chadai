@@ -8,7 +8,14 @@ import type { ToolConfirmation } from "@/lib/chat-stream";
 import { CodeBlock } from "./CodeBlock";
 import { SiteBuildingCard, SiteArtifactCard, extractHtml } from "./SiteBuilder";
 import { ProjectCard } from "./ProjectViewer";
-import { parseProject } from "@/lib/project-parser";
+import { parseProject, hasPatches, parseSearchReplace, applyPatches } from "@/lib/project-parser";
+
+/** Extrait le HTML de base d'un message d'édition (qui embarque le code du
+ * site dans un bloc ```html) pour appliquer un patch. */
+function baseHtmlFrom(content?: string): string | null {
+  if (!content) return null;
+  return extractHtml(content);
+}
 
 /** Détecte un bloc ```html en cours d'écriture (ouvert mais pas encore fermé)
  * dans un message en streaming — renvoie le code déjà reçu, ou null. */
@@ -275,12 +282,15 @@ function TypingDots() {
 
 export function ChatMessage({
   message,
+  prevContent,
   onEdit,
   editable = true,
   onRegenerate,
   onSuggest,
 }: {
   message: Message;
+  /** Contenu du message précédent — base HTML pour appliquer un patch d'édition. */
+  prevContent?: string;
   onEdit?: (newContent: string) => void;
   editable?: boolean;
   onRegenerate?: () => void;
@@ -401,16 +411,30 @@ export function ChatMessage({
   const pendingCode = message.streaming ? pendingHtmlCode(message.content || "") : null;
   const building = pendingCode !== null;
 
+  // ÉDITION PAR PATCH : l'IA a renvoyé des blocs SEARCH/REPLACE → on les
+  // applique au site précédent (dans le message d'édition juste avant) et on
+  // affiche le site MODIFIÉ. Garantit une édition fidèle (pas de recréation).
+  const patchedHtml = (() => {
+    if (message.streaming || !hasPatches(message.content || "")) return null;
+    const base = baseHtmlFrom(prevContent);
+    if (!base) return null;
+    const { html, applied } = applyPatches(base, parseSearchReplace(message.content || ""));
+    return applied > 0 ? html : null;
+  })();
+
   // Projet multi-fichiers terminé (≥2 fichiers nommés) → IDE au lieu des blocs.
-  const project = !message.streaming ? parseProject(message.content || "") : [];
+  const project = !message.streaming && !patchedHtml ? parseProject(message.content || "") : [];
   const isProject = project.length >= 2;
   // Site terminé d'une page → on affiche l'APERÇU RENDU (pas le code brut).
   const finishedHtml =
-    !isProject && !message.streaming ? extractHtml(message.content || "") : null;
+    patchedHtml ??
+    (!isProject && !message.streaming ? extractHtml(message.content || "") : null);
   const isSite = Boolean(finishedHtml);
 
   let visibleContent = message.content || "";
   if (building) visibleContent = visibleContent.replace(/```html[\s\S]*$/i, "").trimEnd();
+  // Si patch appliqué, on masque les blocs SEARCH/REPLACE (techniques).
+  if (patchedHtml) visibleContent = "✅ Modifications appliquées à votre site.";
   // Projet ou site terminé : on retire les blocs de code (rendus par la carte
   // d'aperçu) et on ne garde que le texte narratif.
   if (isProject || isSite) visibleContent = visibleContent.replace(/```[^\n`]*\n[\s\S]*?```/g, "").trim();

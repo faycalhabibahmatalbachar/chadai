@@ -109,14 +109,20 @@ export function SiteBuildingCard({ code }: { code: string }) {
 
 /** Suggestions d'amélioration cliquables — proposées sous un site généré.
  * Un clic renvoie la demande dans le chat pour itérer sur le site. */
-/** Construit un prompt d'édition 100% FIDÈLE : le code EXACT du site est
- * ré-injecté pour que l'IA reparte de l'existant réel (pas de sa mémoire). */
+/** Construit un prompt d'édition 100% FIDÈLE par PATCH SEARCH/REPLACE : l'IA ne
+ * renvoie QUE les portions modifiées, appliquées ensuite au code existant. Le
+ * reste du site est GARANTI identique (le modèle ne peut pas repartir de zéro). */
 export function buildEditPrompt(currentHtml: string, instruction: string): string {
   return (
-    `Voici le CODE EXACT du site actuel. Modifie-le pour : ${instruction}\n` +
-    "Garde tout le reste À L'IDENTIQUE (contenu, sections, structure) et renvoie le SITE COMPLET " +
-    "mis à jour dans un seul bloc ```html.\n\n" +
-    "```html\n" +
+    `MODIFICATION D'UN SITE EXISTANT. Objectif : ${instruction}\n\n` +
+    "Tu ne dois PAS réécrire tout le site. Renvoie UNIQUEMENT les portions à changer sous forme " +
+    "de blocs de patch, chacun ainsi (le SEARCH doit reproduire EXACTEMENT le code actuel, à " +
+    "l'octet près) :\n" +
+    "<<<<<<< SEARCH\n(code actuel exact à remplacer)\n=======\n(nouveau code)\n>>>>>>> REPLACE\n\n" +
+    "Donne autant de blocs que nécessaire. Si l'ajout est une nouvelle section, mets dans SEARCH " +
+    "une ancre existante (ex. </main> ou </body>) et dans REPLACE cette ancre précédée du nouveau " +
+    "contenu. Ne renvoie RIEN d'autre que les blocs de patch.\n\n" +
+    "=== CODE ACTUEL DU SITE ===\n```html\n" +
     currentHtml +
     "\n```"
   );
