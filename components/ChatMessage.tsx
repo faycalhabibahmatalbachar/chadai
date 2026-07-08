@@ -6,18 +6,18 @@ import remarkGfm from "remark-gfm";
 import { confirmToolAction, sendFeedback } from "@/lib/chat-api";
 import type { ToolConfirmation } from "@/lib/chat-stream";
 import { CodeBlock } from "./CodeBlock";
-import { SiteBuildingCard, SiteSuggestions } from "./SiteBuilder";
+import { SiteBuildingCard, SiteArtifactCard, extractHtml } from "./SiteBuilder";
 import { ProjectCard } from "./ProjectViewer";
 import { parseProject } from "@/lib/project-parser";
 
 /** Détecte un bloc ```html en cours d'écriture (ouvert mais pas encore fermé)
- * dans un message en streaming — déclenche la carte de construction animée. */
-function pendingHtmlBlock(content: string): number | null {
-  const open = content.search(/```html/i);
-  if (open === -1) return null;
-  const after = content.slice(open + 6);
+ * dans un message en streaming — renvoie le code déjà reçu, ou null. */
+function pendingHtmlCode(content: string): string | null {
+  const m = content.match(/```html[^\n]*\n?/i);
+  if (!m || m.index === undefined) return null;
+  const after = content.slice(m.index + m[0].length);
   if (after.includes("```")) return null; // bloc déjà fermé
-  return after.length; // longueur du code déjà reçu
+  return after;
 }
 
 export interface Message {
@@ -387,20 +387,22 @@ export function ChatMessage({
   // Pendant le streaming d'un site : on masque le code brut qui défile et on
   // affiche la carte de construction animée à sa place (le texte avant le bloc
   // reste rendu). Une fois le site terminé, on propose des améliorations.
-  const buildingLen = message.streaming ? pendingHtmlBlock(message.content || "") : null;
-  const building = buildingLen !== null;
+  const pendingCode = message.streaming ? pendingHtmlCode(message.content || "") : null;
+  const building = pendingCode !== null;
 
   // Projet multi-fichiers terminé (≥2 fichiers nommés) → IDE au lieu des blocs.
   const project = !message.streaming ? parseProject(message.content || "") : [];
   const isProject = project.length >= 2;
-  const hasFinishedHtml =
-    !isProject && !message.streaming && /```html[\s\S]*?```/i.test(message.content || "");
+  // Site terminé d'une page → on affiche l'APERÇU RENDU (pas le code brut).
+  const finishedHtml =
+    !isProject && !message.streaming ? extractHtml(message.content || "") : null;
+  const isSite = Boolean(finishedHtml);
 
   let visibleContent = message.content || "";
   if (building) visibleContent = visibleContent.replace(/```html[\s\S]*$/i, "").trimEnd();
-  // Pour un projet, on retire tous les blocs de code (montrés dans l'IDE) et on
-  // ne garde que le texte narratif.
-  if (isProject) visibleContent = visibleContent.replace(/```[^\n`]*\n[\s\S]*?```/g, "").trim();
+  // Projet ou site terminé : on retire les blocs de code (rendus par la carte
+  // d'aperçu) et on ne garde que le texte narratif.
+  if (isProject || isSite) visibleContent = visibleContent.replace(/```[^\n`]*\n[\s\S]*?```/g, "").trim();
 
   return (
     <div className="animate-fade-in">
@@ -430,9 +432,9 @@ export function ChatMessage({
             >
               {visibleContent}
             </ReactMarkdown>
-            {building && <SiteBuildingCard codeLength={buildingLen ?? 0} />}
+            {building && <SiteBuildingCard code={pendingCode ?? ""} />}
             {isProject && <ProjectCard content={message.content || ""} onSuggest={onSuggest} />}
-            {hasFinishedHtml && <SiteSuggestions onSuggest={onSuggest} />}
+            {isSite && finishedHtml && <SiteArtifactCard html={finishedHtml} onSuggest={onSuggest} />}
           </div>
         )}
         {message.streaming && message.content && (
