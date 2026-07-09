@@ -148,6 +148,7 @@ export default function ChatPage() {
   const abortRef = useRef<AbortController | null>(null);
   const lastUserMessageRef = useRef<string>("");
   const stickToBottomRef = useRef(true);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   // Calculé après montage (pas au rendu serveur statique) pour éviter un
   // écart d'hydratation lié au fuseau horaire du visiteur.
@@ -215,13 +216,26 @@ export default function ChatPage() {
   useEffect(() => {
     if (stickToBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowScrollDown(false);
+    } else {
+      // Nouveau contenu arrivé (réponse en cours) pendant que l'utilisateur a
+      // remonté lire un message précédent — signale qu'il y a du texte plus bas.
+      setShowScrollDown(true);
     }
   }, [messages]);
 
   function handleMainScroll(e: React.UIEvent<HTMLElement>) {
     const el = e.currentTarget;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    stickToBottomRef.current = distanceFromBottom < 120;
+    const atBottom = distanceFromBottom < 120;
+    stickToBottomRef.current = atBottom;
+    setShowScrollDown(!atBottom);
+  }
+
+  function scrollToBottom() {
+    stickToBottomRef.current = true;
+    setShowScrollDown(false);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
   // Auto-grandissement de la zone de saisie, comme Claude/ChatGPT.
@@ -671,7 +685,22 @@ export default function ChatPage() {
             barre de défilement reste au bord réel de la page (comme Gemini),
             pas au bord d'une colonne centrée. Le contenu se centre à
             l'intérieur via ce wrapper. */}
-        <main ref={mainRef} onScroll={handleMainScroll} className="flex-1 overflow-y-auto">
+        <main ref={mainRef} onScroll={handleMainScroll} className="relative flex-1 overflow-y-auto">
+          {showScrollDown && (
+            <button
+              onClick={scrollToBottom}
+              aria-label="Aller au dernier message"
+              title="Aller au dernier message"
+              className="absolute bottom-4 left-1/2 z-10 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border shadow-lg transition hover:scale-105"
+              style={{
+                borderColor: "var(--border)",
+                background: "var(--card)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <ChevronDownIcon />
+            </button>
+          )}
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-5 px-4 py-6">
             {historyLoading && <HistorySkeleton />}
 
@@ -1041,6 +1070,14 @@ function VoiceModeIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
