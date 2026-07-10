@@ -67,22 +67,22 @@ export function Landing() {
             Pourquoi Toumaï AI
           </p>
           <h2 className="landing-serif max-w-2xl text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
-            Conçu pour le Tchad,{" "}
-            <em style={{ color: "var(--landing-terra)" }}>pas adapté après coup.</em>
+            Pensé pour le Tchad,{" "}
+            <em style={{ color: "var(--landing-terra)" }}>dès la première ligne de code.</em>
           </h2>
           <div className="mt-12 grid gap-4 sm:grid-cols-3">
             {[
               {
-                title: "Arabe tchadien, pas seulement l'arabe standard",
-                desc: "Comprend et répond dans le dialecte parlé au quotidien, pas uniquement en arabe littéraire formel.",
+                title: "L'arabe tel qu'on le parle ici",
+                desc: "Le dialecte tchadien du quotidien, au-delà de l'arabe littéraire des manuels.",
               },
               {
-                title: "Sur WhatsApp, sans rien installer",
-                desc: "Fonctionne directement dans l'application que vous utilisez déjà — pas de nouvelle app à télécharger.",
+                title: "Déjà dans votre WhatsApp",
+                desc: "Rien à télécharger. Vous lui écrivez comme à n'importe quel autre contact.",
               },
               {
-                title: "Paiement Mobile Money",
-                desc: "Aucune carte bancaire nécessaire pour les fonctionnalités avancées — Mesomb et Airtel Money acceptés.",
+                title: "Payez avec ce que vous avez",
+                desc: "Mesomb, Airtel Money : aucune carte bancaire n'est nécessaire.",
               },
             ].map((item) => (
               <div
@@ -110,8 +110,8 @@ export function Landing() {
             Comment ça marche
           </p>
           <h2 className="landing-serif max-w-xl text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
-            Trois façons d&apos;y accéder,{" "}
-            <em style={{ color: "var(--landing-terra)" }}>zéro installation.</em>
+            Disponible là où{" "}
+            <em style={{ color: "var(--landing-terra)" }}>vous êtes déjà.</em>
           </h2>
           <div className="mt-12 grid gap-4 sm:grid-cols-3">
             {[
@@ -207,7 +207,7 @@ export function Landing() {
             <Tile>
               <h3 className="text-base font-semibold">Génération d&apos;images</h3>
               <p className="mt-1.5 text-sm" style={{ color: "var(--landing-muted)" }}>
-                Décrivez, Toumaï AI crée — signature intégrée à l&apos;image.
+                Décrivez ce que vous voulez, Toumaï AI le crée avec sa signature intégrée.
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -339,7 +339,8 @@ export function Landing() {
             Modèles
           </p>
           <h2 className="landing-serif max-w-xl text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
-            Deux modèles, <em style={{ color: "var(--landing-terra)" }}>zéro confusion.</em>
+            Rapide au quotidien.{" "}
+            <em style={{ color: "var(--landing-terra)" }}>Approfondi quand il le faut.</em>
           </h2>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
             {[
