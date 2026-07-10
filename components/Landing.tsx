@@ -55,6 +55,49 @@ export function Landing() {
         GRATUIT&ensp;·&ensp;FRANÇAIS · ARABE · ANGLAIS&ensp;·&ensp;WEB &amp; MOBILE
       </p>
 
+      {/* Différenciation — pourquoi Toumaï AI plutôt qu'un assistant généraliste */}
+      <section className="px-6 pt-20">
+        <div className="mx-auto max-w-5xl">
+          <p
+            className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: "var(--landing-terra)" }}
+          >
+            Pourquoi Toumaï AI
+          </p>
+          <h2 className="landing-serif max-w-2xl text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
+            Conçu pour le Tchad,{" "}
+            <em style={{ color: "var(--landing-terra)" }}>pas adapté après coup.</em>
+          </h2>
+          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                title: "Arabe tchadien, pas seulement l'arabe standard",
+                desc: "Comprend et répond dans le dialecte parlé au quotidien, pas uniquement en arabe littéraire formel.",
+              },
+              {
+                title: "Sur WhatsApp, sans rien installer",
+                desc: "Fonctionne directement dans l'application que vous utilisez déjà — pas de nouvelle app à télécharger.",
+              },
+              {
+                title: "Paiement Mobile Money",
+                desc: "Aucune carte bancaire nécessaire pour les fonctionnalités avancées — Mesomb et Airtel Money acceptés.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-[20px] border p-7"
+                style={{ borderColor: "var(--landing-line)", background: "var(--landing-card)" }}
+              >
+                <h3 className="text-base font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm" style={{ color: "var(--landing-muted)" }}>
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Capacités */}
       <section id="capacites" className="scroll-mt-24 px-6 pt-24">
         <div className="mx-auto max-w-5xl">
