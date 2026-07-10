@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { MaintenanceGate } from "@/components/MaintenanceGate";
+import { CookieConsent } from "@/components/CookieConsent";
+import { AnalyticsInit } from "@/components/AnalyticsInit";
 
 // Applique le thème sauvegardé AVANT le premier rendu — évite un flash du
 // mauvais thème (dark forcé puis bascule vers light) au chargement.
@@ -140,7 +142,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <MaintenanceGate />
+            <AnalyticsInit />
             {children}
+            <CookieConsent />
           </AuthProvider>
         </ThemeProvider>
       </body>
