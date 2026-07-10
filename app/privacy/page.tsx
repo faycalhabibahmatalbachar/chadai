@@ -49,10 +49,11 @@ export default function PrivacyPage() {
 
       <h2>3. Sous-traitants techniques</h2>
       <p>
-        Pour générer les réponses, vos messages peuvent être traités par des fournisseurs
-        d&apos;inférence (par ex. Groq, Google Gemini, Mistral) et nos hébergeurs (Supabase pour la
-        base de données, Cloudflare R2 pour les fichiers, Northflank pour les serveurs). Ils
-        agissent comme sous-traitants et ne sont pas autorisés à réutiliser vos données.
+        Pour générer les réponses et faire fonctionner le service, vos messages peuvent être
+        traités par des fournisseurs d&apos;intelligence artificielle, ainsi que par nos
+        hébergeurs (base de données, stockage de fichiers, infrastructure serveur). Ils agissent
+        uniquement comme sous-traitants, sous contrat, et ne sont pas autorisés à réutiliser vos
+        données à d&apos;autres fins.
       </p>
 
       <h2>4. Partenaires de données et modèles tiers</h2>

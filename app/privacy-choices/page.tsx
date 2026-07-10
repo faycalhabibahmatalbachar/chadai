@@ -44,11 +44,23 @@ const CHOICES = [
     action: "contact@toumaiai.com",
     href: "mailto:contact@toumaiai.com",
   },
+  {
+    title: "Cookies et mesure d'audience",
+    desc: "Vous choisissez d'accepter ou de refuser les cookies de mesure d'audience à la première visite. Aucun cookie publicitaire, aucun ciblage.",
+    action: "Bannière de consentement · rejouable à tout moment",
+    href: "/",
+  },
+  {
+    title: "Réclamation ou question",
+    desc: "Une question sur vos données, ou un litige que nous n'avons pas su résoudre ? Contactez-nous directement, par e-mail ou WhatsApp.",
+    action: "contact@toumaiai.com · WhatsApp",
+    href: "https://wa.me/23591912191",
+  },
 ];
 
 export default function PrivacyChoicesPage() {
   return (
-    <LegalLayout title="Choix de confidentialité" updated="5 juillet 2026">
+    <LegalLayout title="Choix de confidentialité" updated="10 juillet 2026">
       <p>
         Toumaï AI est conçu sur un principe simple : <strong>c&apos;est vous qui décidez</strong>.
         Voici tous les contrôles à votre disposition, et où les trouver.
