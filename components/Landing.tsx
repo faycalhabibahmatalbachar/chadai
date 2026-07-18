@@ -335,47 +335,64 @@ export function Landing() {
             className="mb-3 text-[13px] font-semibold uppercase tracking-[0.08em]"
             style={{ color: "var(--landing-terra)" }}
           >
-            Modèles
+            Sous le capot
           </p>
           <h2 className="landing-serif max-w-xl text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
-            Rapide au quotidien.{" "}
-            <em style={{ color: "var(--landing-terra)" }}>Approfondi quand il le faut.</em>
+            Un routeur choisit{" "}
+            <em style={{ color: "var(--landing-terra)" }}>le bon modèle</em> pour chaque tâche.
           </h2>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {[
-              {
-                name: "Sao 4",
-                tag: "Code & quotidien",
-                desc: "Le modèle par défaut — rapide et polyvalent pour la conversation, le code et les tâches courantes.",
-                use: "Idéal pour : questions, rédaction, développement.",
-              },
-              {
-                name: "Toumaï 5",
-                tag: "Raisonnement profond",
-                desc: "Prend le temps de réfléchir, étape par étape, sur les questions complexes qui le méritent.",
-                use: "Idéal pour : analyse, problèmes difficiles, décisions.",
-              },
-            ].map((m) => (
-              <div
-                key={m.name}
-                className="rounded-[20px] border p-9"
-                style={{ borderColor: "var(--landing-line)", background: "var(--landing-card)" }}
-              >
-                <p className="landing-serif text-[28px] font-medium">{m.name}</p>
-                <p
-                  className="mt-1.5 text-[13px] font-semibold uppercase tracking-[0.05em]"
-                  style={{ color: "var(--landing-terra)" }}
+          <p className="mt-4 max-w-lg text-[15px]" style={{ color: "var(--landing-muted)" }}>
+            Vous écrivez naturellement. Toumaï AI détecte s&apos;il s&apos;agit de
+            code, d&apos;une image, d&apos;un document ou d&apos;une question qui
+            demande de réfléchir — et envoie la requête au modèle le mieux
+            préparé pour y répondre. Aucun réglage requis.
+          </p>
+
+          {/* Schéma de routage : hub central → 7 modèles spécialisés */}
+          <div className="mt-14">
+            <div className="mx-auto flex w-fit items-center gap-2.5 rounded-full border px-5 py-2.5" style={{ borderColor: "var(--landing-line)", background: "var(--landing-card)" }}>
+              <Logo size={16} />
+              <span className="text-sm font-semibold">Toumaï AI</span>
+            </div>
+            <div className="mx-auto mt-1 h-8 w-px" style={{ background: "var(--landing-line)" }} aria-hidden="true" />
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { name: "Sao 4", tag: "Code & quotidien", badge: "S4", default: true },
+                { name: "Toumaï 5", tag: "Raisonnement profond", badge: "T5" },
+                { name: "Ennedi", tag: "Génération d'images", badge: "En" },
+                { name: "Ouaddaï Pro", tag: "Analyse de documents", badge: "OP" },
+                { name: "Kanem Flash", tag: "Conversation vocale", badge: "KF" },
+                { name: "Tibesti Code", tag: "Code expert", badge: "TC" },
+                { name: "Chari", tag: "CV, lettres & rapports", badge: "Ch" },
+              ].map((m) => (
+                <div
+                  key={m.name}
+                  className="rounded-[16px] border p-5"
+                  style={{ borderColor: "var(--landing-line)", background: "var(--landing-card)" }}
                 >
-                  {m.tag}
-                </p>
-                <p className="mt-3.5 text-[15px]" style={{ color: "var(--landing-muted)" }}>
-                  {m.desc}
-                </p>
-                <p className="mt-5 text-[13px]" style={{ color: "var(--landing-faint)" }}>
-                  {m.use}
-                </p>
-              </div>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                      style={{ background: "var(--landing-terra-soft)", color: "var(--landing-terra)" }}
+                    >
+                      {m.badge}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold">{m.name}</p>
+                      {m.default && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--landing-faint)" }}>
+                          Par défaut
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[13px]" style={{ color: "var(--landing-muted)" }}>
+                    {m.tag}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
