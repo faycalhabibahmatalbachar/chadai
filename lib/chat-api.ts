@@ -164,7 +164,7 @@ export async function getSharedConversation(token: string): Promise<SharedConver
   return body.data as SharedConversation;
 }
 
-/** Regroupe les sessions par période, comme ChatGPT/Claude.ai — les
+/** Regroupe les sessions par période — les
  * conversations épinglées forment leur propre groupe en tête de liste. */
 export function groupSessionsByDate(sessions: ChatSession[]): { label: string; items: ChatSession[] }[] {
   const now = Date.now();

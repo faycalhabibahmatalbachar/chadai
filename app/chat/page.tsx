@@ -240,7 +240,7 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
-  // Auto-grandissement de la zone de saisie, comme Claude/ChatGPT.
+  // Auto-grandissement de la zone de saisie au fil de la frappe.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -353,7 +353,7 @@ export default function ChatPage() {
 
   /** Modifie un message utilisateur passé, tronque tout ce qui suit (côté
    * client ET côté serveur, pour que le modèle ne voie pas l'ancienne
-   * branche) et relance la génération à partir de là — comme ChatGPT/Claude. */
+   * branche) et relance la génération à partir de là. */
   async function editMessage(id: string, newContent: string) {
     if (sending || !session) return;
     setError(null);
