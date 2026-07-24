@@ -277,6 +277,8 @@ export default function ChatPage() {
         role: m.role,
         content: m.content,
         imageUrls: m.metadata?.image_urls,
+        sources: m.metadata?.sources,
+        searchImages: m.metadata?.search_images,
       }));
       setMessages(mapped);
       // On borne à 60 messages en cache : assez pour un retour instantané,
@@ -428,6 +430,8 @@ export default function ChatPage() {
           if (evt.done) {
             const imageUrls = evt.metadata?.image_urls;
             const toolConfirmation = evt.metadata?.tool_confirmation;
+            const sources = evt.metadata?.sources;
+            const searchImages = evt.metadata?.search_images;
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id === assistantId) {
@@ -436,6 +440,8 @@ export default function ChatPage() {
                     streaming: false,
                     serverId: evt.message_id,
                     imageUrls: imageUrls?.length ? imageUrls : m.imageUrls,
+                    sources: sources?.length ? sources : m.sources,
+                    searchImages: searchImages?.length ? searchImages : m.searchImages,
                     // Action sensible (WhatsApp/mail) : la carte
                     // Confirmer/Annuler déclenche la vraie exécution.
                     toolConfirmation: toolConfirmation ?? m.toolConfirmation,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { confirmToolAction, sendFeedback } from "@/lib/chat-api";
-import type { ToolConfirmation } from "@/lib/chat-stream";
+import type { ToolConfirmation, WebSource, SearchImage } from "@/lib/chat-stream";
 import { CodeBlock } from "./CodeBlock";
 import { SiteBuildingCard, SiteArtifactCard, extractHtml } from "./SiteBuilder";
 import { ProjectCard } from "./ProjectViewer";
@@ -38,6 +38,9 @@ export interface Message {
   /** Action sensible en attente (WhatsApp, mail…) — affiche la carte
    * Confirmer/Annuler qui déclenche la VRAIE exécution côté backend. */
   toolConfirmation?: ToolConfirmation;
+  /** Sources et images réelles trouvées pendant une recherche web (jamais générées). */
+  sources?: WebSource[];
+  searchImages?: SearchImage[];
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -244,6 +247,96 @@ function ImageTile({ url }: { url: string }) {
           />
           <button
             onClick={() => setPreview(false)}
+            aria-label="Fermer l'aperçu"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path
+        d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 10-7.07-7.07L11.5 4.5M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 107.07 7.07L12.5 19.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function domainFromUrl(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/** Liens des pages consultées pendant une recherche web — façon Perplexity. */
+function WebSourcesRow({ sources }: { sources: WebSource[] }) {
+  const items = sources.filter((s) => s.url).slice(0, 5);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {items.map((s, i) => (
+        <a
+          key={s.url + i}
+          href={s.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex max-w-[200px] items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
+        >
+          <LinkIcon />
+          <span className="truncate">{s.title || domainFromUrl(s.url)}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** Images réelles trouvées pendant une recherche web (jamais générées) — galerie
+ * horizontale, façon Perplexity/ChatGPT Search. */
+function SearchImagesRow({ images }: { images: SearchImage[] }) {
+  const items = images.filter((i) => i.url);
+  const [preview, setPreview] = useState<SearchImage | null>(null);
+  if (items.length === 0) return null;
+  return (
+    <>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {items.map((img, i) => (
+          <button
+            key={img.url + i}
+            onClick={() => setPreview(img)}
+            className="h-20 w-20 shrink-0 cursor-zoom-in overflow-hidden rounded-xl border border-[var(--border)]"
+            aria-label="Agrandir l'image"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.url} alt={img.title || "Image issue de la recherche"} className="h-full w-full object-cover" loading="lazy" />
+          </button>
+        ))}
+      </div>
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/80 p-6"
+          onClick={() => setPreview(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview.url}
+            alt={preview.title || "Image issue de la recherche"}
+            className="max-h-[80vh] max-w-full rounded-lg object-contain"
+          />
+          {preview.source_url && (
+            <span className="text-xs text-white/70">{domainFromUrl(preview.source_url)}</span>
+          )}
+          <button
+            onClick={() => setPreview(null)}
             aria-label="Fermer l'aperçu"
             className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           >
@@ -485,6 +578,12 @@ export function ChatMessage({
             <ImageTile key={url + i} url={url} />
           ))}
         </div>
+      )}
+      {!message.streaming && message.searchImages && message.searchImages.length > 0 && (
+        <SearchImagesRow images={message.searchImages} />
+      )}
+      {!message.streaming && message.sources && message.sources.length > 0 && (
+        <WebSourcesRow sources={message.sources} />
       )}
       {!message.streaming && message.content && (
         <div className="flex items-center gap-0.5 pt-1 text-[var(--text-tertiary)]">

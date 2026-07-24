@@ -12,9 +12,23 @@ export interface ToolConfirmation {
   text?: string;
 }
 
+/** Source web citée par une réponse ayant fait une recherche. */
+export interface WebSource {
+  title?: string;
+  url: string;
+}
+
+/** Image réelle trouvée pendant une recherche web — jamais générée. */
+export interface SearchImage {
+  url: string;
+  title?: string;
+  source_url?: string;
+}
+
 export interface StreamMetadata {
   image_urls?: string[];
-  sources?: unknown[];
+  sources?: WebSource[];
+  search_images?: SearchImage[];
   tool_confirmation?: ToolConfirmation;
   [key: string]: unknown;
 }

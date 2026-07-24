@@ -1,6 +1,7 @@
 import { API_BASE } from "./config";
 import { authHeaders } from "./api";
 import { handleUnauthorized } from "./session-guard";
+import type { WebSource, SearchImage } from "./chat-stream";
 
 export interface ChatSession {
   id: string;
@@ -15,7 +16,11 @@ export interface HistoryMessage {
   session_id: string;
   role: "user" | "assistant";
   content: string;
-  metadata?: { image_urls?: string[]; sources?: unknown[] } | null;
+  metadata?: {
+    image_urls?: string[];
+    sources?: WebSource[];
+    search_images?: SearchImage[];
+  } | null;
   created_at: string;
 }
 
